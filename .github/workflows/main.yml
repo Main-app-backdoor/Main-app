@@ -25,10 +25,6 @@ jobs:
       run: |
         ls -la
 
-    - name: Remove existing files and directories
-      run: |
-        find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-
     - name: Force add all changes
       run: |
         git config --global user.email "you@example.com"
