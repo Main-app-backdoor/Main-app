@@ -17,9 +17,11 @@ jobs:
 
     - name: Unzip the file
       run: |
-        unzip -q backdoor-app-main.zip -d . && mv Main-app-main/* . && rm -rf Main-app-main
+        unzip -q backdoor-app-main.zip
+        mv Main-app-main/* .
+        rm -rf Main-app-main backdoor-app-main.zip
 
-    - name: List contents of the unzipped directory
+    - name: List contents of the main directory
       run: |
         ls -la
 
