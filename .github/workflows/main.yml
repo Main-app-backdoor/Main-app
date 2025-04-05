@@ -13,24 +13,19 @@ jobs:
 
     - name: Download ZIP file
       run: |
-        curl -L -o Main-app-main.zip "https://github.com/Backdoor-main/Main-app/archive/refs/heads/main.zip"
+        curl -L -o backdoor-app-main.zip "https://github.com/Backdoor-main/Main-app/archive/refs/heads/main.zip"
 
     - name: Unzip the file
       run: |
-        unzip -q Main-app-main.zip
+        unzip -q backdoor-app-main.zip -d . && mv Main-app-main/* . && rm -rf Main-app-main
 
     - name: List contents of the unzipped directory
       run: |
-        ls -la Main-app-main
+        ls -la
 
     - name: Remove existing files and directories
       run: |
         find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-
-    - name: Move contents to root
-      run: |
-        mv Main-app-main/* .
-        rm -rf Main-app-main Main-app-main.zip
 
     - name: Force add all changes
       run: |
