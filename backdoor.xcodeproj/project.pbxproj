@@ -57,29 +57,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				AppContextManager+ServerSync.swift,
-				AppContextManager+UserDefaults.swift,
-				Application.swift,
-				AuthenticationCache.swift,
-				Authenticator.swift,
-				BasicAuthorization.swift,
-				BearerAuthorization.swift,
-				GuardMiddleware.swift,
-				RedirectMiddleware.swift,
-				SessionAuthenticatable.swift,
-				Bcrypt.swift,
-				Application+Extensions.swift,
-				AppContextManager+Extensions.swift,
-				AppContextManager+Functionalities.swift,
-				AppContextManager+Handling.swift,
-				AppContextManager+Initializations.swift,
-				AppContextManager+Interactions.swift,
-				AppContextManager+Networking.swift,
-				AppContextManager+Setup.swift,
-				AppContextManager+Subscriptions.swift,
-				AppContextManager+Updates.swift,
-				AppContextManager+UserManagement.swift,
-				AppContextManager+WebView.swift,
 			);
 			target = 33BA378A2BF8159F00FF530A /* backdoor */;
 		};
