@@ -87,20 +87,15 @@ class AILearningManager {
         Debug.shared.log(message: "AI learning \(enabled ? "enabled" : "disabled")", type: .info)
     }
     
-    /// Check if server sync is enabled (sending data to remote server)
+    /// Server sync is now permanently disabled - we use only local model
     var isServerSyncEnabled: Bool {
-        // Default to enabled for better out-of-box experience
-        if UserDefaults.standard.object(forKey: "AIServerSyncEnabled") == nil {
-            UserDefaults.standard.set(true, forKey: "AIServerSyncEnabled")
-            return true
-        }
-        return UserDefaults.standard.bool(forKey: "AIServerSyncEnabled")
+        return false
     }
     
-    /// Set whether server sync is enabled
+    /// This method is maintained for backward compatibility but all server sync is disabled
     func setServerSyncEnabled(_ enabled: Bool) {
-        UserDefaults.standard.set(enabled, forKey: "AIServerSyncEnabled")
-        Debug.shared.log(message: "AI server sync \(enabled ? "enabled" : "disabled")", type: .info)
+        UserDefaults.standard.set(false, forKey: "AIServerSyncEnabled")
+        Debug.shared.log(message: "AI server sync is permanently disabled - using local model only", type: .info)
     }
     
     /// Verify export password
@@ -206,13 +201,8 @@ class AILearningManager {
         // Save to disk
         saveInteractions()
         
-        // If server sync is enabled, queue for sync
-        if isServerSyncEnabled {
-            queueForServerSync()
-        } else {
-            // Otherwise, check if we should train locally
-            evaluateTraining()
-        }
+        // Always train locally (server sync is disabled)
+        queueForLocalProcessing()
     }
     
     /// Record user behavior within the app

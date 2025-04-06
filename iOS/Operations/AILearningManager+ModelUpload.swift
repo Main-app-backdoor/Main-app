@@ -7,38 +7,41 @@
 import Foundation
 import CoreML
 
-/// Extension to AILearningManager for model upload functionality
+/// Extension to AILearningManager for enhanced local model functionality
 extension AILearningManager {
     
-    /// Upload the locally trained CoreML model to the server for ensemble training
-    func uploadTrainedModelToServer() async -> (success: Bool, message: String) {
-        Debug.shared.log(message: "Starting trained model upload process", type: .info)
+    /// Perform deep personal learning based on user data
+    func performDeepPersonalLearning() {
+        Debug.shared.log(message: "Starting deep personal learning process", type: .info)
         
-        // Verify server sync is enabled
-        guard isServerSyncEnabled else {
-            Debug.shared.log(message: "Server sync is disabled. Cannot upload model.", type: .warning)
-            return (false, "Server sync is disabled in settings. Please enable it to upload models.")
+        // Get the latest model URL
+        guard let modelURL = getLatestModelURL() else {
+            Debug.shared.log(message: "No trained model found for enhancement", type: .error)
+            return
         }
         
-        // Get the latest model URL - use async version for proper await
-        guard let modelURL = await getLatestModelURLAsync() else {
-            Debug.shared.log(message: "No trained model found to upload", type: .error)
-            return (false, "No trained model found. Please train a model first.")
+        // Ensure we have user data to learn from
+        interactionsLock.lock()
+        let hasInteractions = !storedInteractions.isEmpty
+        interactionsLock.unlock()
+        
+        behaviorsLock.lock()
+        let hasBehaviors = !userBehaviors.isEmpty
+        behaviorsLock.unlock()
+        
+        if !hasInteractions && !hasBehaviors {
+            Debug.shared.log(message: "Insufficient user data for deep learning", type: .info)
+            return
         }
         
-        // Upload the model
-        do {
-            let message = try await uploadModelToServer(modelURL: modelURL)
-            Debug.shared.log(message: "Model upload successful: \(message)", type: .info)
-            return (true, message)
-        } catch {
-            Debug.shared.log(message: "Model upload failed: \(error.localizedDescription)", type: .error)
-            return (false, "Upload failed: \(error.localizedDescription)")
+        // Trigger the learning process in background
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            self?.trainNewModel()
         }
     }
     
-    /// Check if a trained model exists and is ready for upload
-    func isTrainedModelAvailableForUpload() -> Bool {
+    /// Check if a trained model exists and is usable
+    func isTrainedModelAvailable() -> Bool {
         if let modelURL = getLatestModelURL() {
             return FileManager.default.fileExists(atPath: modelURL.path)
         }
@@ -50,5 +53,30 @@ extension AILearningManager {
         let version = currentModelVersion
         let date = UserDefaults.standard.object(forKey: lastTrainingKey) as? Date
         return (version, date)
+    }
+    
+    /// Handle web search data collection for AI improvement
+    func processWebSearchData(query: String, results: [String]) {
+        // Only process if learning is enabled
+        guard isLearningEnabled else {
+            return
+        }
+        
+        // Record the search behavior
+        let searchDetails: [String: String] = [
+            "query": query,
+            "resultCount": "\(results.count)"
+        ]
+        
+        // Add to user behaviors
+        recordUserBehavior(
+            action: "search",
+            screen: "WebSearch",
+            duration: 0,
+            details: searchDetails
+        )
+        
+        // Schedule training evaluation
+        queueForLocalProcessing()
     }
 }
