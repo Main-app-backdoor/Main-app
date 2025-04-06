@@ -10,9 +10,7 @@ import Foundation
 // Import the necessary signing data types
 import SwiftUI // For ObservableObject
 
-// FIXME: Class name has a typo ("COntroller" instead of "Controller") but must match file name
-// and existing references in other files. Should be properly renamed in a future PR.
-class FRSITableViewCOntroller: FRSTableViewController {
+class FRSITableViewController: FRSTableViewController {
     var signingDataWrapper: SigningDataWrapper
     var mainOptions: SigningMainDataWrapper
 

@@ -8,7 +8,7 @@ import UIKit
 import Foundation
 import SwiftUI // For ObservableObject support
 
-class SigningsAdvancedViewController: FRSITableViewCOntroller {
+class SigningsAdvancedViewController: FRSITableViewController {
     private var toggleOptions: [TogglesOption]
 
     override init(signingDataWrapper: SigningDataWrapper, mainOptions: SigningMainDataWrapper) {
