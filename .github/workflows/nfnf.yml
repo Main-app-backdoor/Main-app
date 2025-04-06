@@ -1,0 +1,50 @@
+name: Download, Unzip, and Upload
+
+on:
+  push:
+    branches:
+      - main  # Change this to your default branch
+  workflow_dispatch:
+
+jobs:
+  download_and_upload:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Download zip file
+      run: |
+        wget -O check.zip "https://www.dropbox.com/scl/fi/uswfush4tek459z79cqta/check.zip?dl=1"
+
+    - name: Unzip file
+      run: |
+        unzip check.zip -d check_folder
+
+    - name: Create new branch
+      run: |
+        git checkout -b new-branch-name  # Change 'new-branch-name' to your desired branch name
+        
+    - name: Copy files to new branch
+      run: |
+        cp -R check_folder/* .
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "you@example.com"  # Change email
+        git config --local user.name "Your Name"  # Change name
+
+    - name: Commit and push changes
+      run: |
+        git add .
+        git commit -m "Add files from check.zip"
+        git push origin new-branch-name  # Push the created branch
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v3
+      with:
+        title: 'Add files from check.zip'
+        body: 'This pull request contains the files extracted from check.zip.'
+        base: main  # Change this to your default branch
+        head: new-branch-name  # Use the branch you created
