@@ -171,6 +171,10 @@ class AILearningSettingsViewController: UITableViewController {
             cell.textLabel?.textColor = .systemBlue
             return cell
             
+        case .serverSettings:
+            // This section has 0 rows but we still need to handle it in the switch
+            return UITableViewCell()
+            
         case .none:
             return UITableViewCell()
         }
