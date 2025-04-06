@@ -2,9 +2,12 @@ import os
 import subprocess
 import plistlib
 from datetime import datetime
+import zipfile
+import shutil
 
-# Directory containing .mobileprovision files (relative to repo root)
-PROVISION_DIR = "provision"
+# Directory containing .mobileprovision and .ipa files (relative to repo root)
+CHECK_DIR = "check"
+TEMP_DIR = "temp_extracted"  # Temporary directory for extracted files
 
 # Current date (hardcoded to April 06, 2025, for this example; adjust as needed)
 CURRENT_DATE = datetime(2025, 4, 6)
@@ -55,17 +58,51 @@ def check_expiry(file_path):
         if os.path.exists(temp_plist):
             os.remove(temp_plist)
 
+def extract_mobileprovision_from_ipa(ipa_path):
+    """Extract embedded.mobileprovision from an .ipa file."""
+    try:
+        with zipfile.ZipFile(ipa_path, 'r') as ipa_zip:
+            # Look for embedded.mobileprovision in Payload/*.app/
+            for file in ipa_zip.namelist():
+                if file.endswith("embedded.mobileprovision"):
+                    # Extract to temporary directory
+                    ipa_zip.extract(file, TEMP_DIR)
+                    extracted_path = os.path.join(TEMP_DIR, file)
+                    return extracted_path
+            print(f"{ipa_path}: No embedded.mobileprovision found")
+            return None
+    except Exception as e:
+        print(f"{ipa_path}: Error extracting - {str(e)}")
+        return None
+
 def main():
-    # Ensure the provision directory exists
-    if not os.path.exists(PROVISION_DIR):
-        print(f"Error: Directory '{PROVISION_DIR}' not found.")
+    # Ensure the check directory exists
+    if not os.path.exists(CHECK_DIR):
+        print(f"Error: Directory '{CHECK_DIR}' not found.")
         return
     
-    # Process all .mobileprovision files
-    for filename in os.listdir(PROVISION_DIR):
+    # Create temporary directory for extracted files
+    if os.path.exists(TEMP_DIR):
+        shutil.rmtree(TEMP_DIR)  # Clean up any previous temp directory
+    os.makedirs(TEMP_DIR)
+
+    # Process all files in the check directory
+    for filename in os.listdir(CHECK_DIR):
+        file_path = os.path.join(CHECK_DIR, filename)
+
         if filename.endswith(".mobileprovision"):
-            file_path = os.path.join(PROVISION_DIR, filename)
+            # Check standalone .mobileprovision files
             check_expiry(file_path)
+
+        elif filename.endswith(".ipa"):
+            # Extract and check embedded .mobileprovision from .ipa
+            extracted_path = extract_mobileprovision_from_ipa(file_path)
+            if extracted_path:
+                check_expiry(extracted_path)
+
+    # Clean up temporary directory
+    if os.path.exists(TEMP_DIR):
+        shutil.rmtree(TEMP_DIR)
 
 if __name__ == "__main__":
     main()
