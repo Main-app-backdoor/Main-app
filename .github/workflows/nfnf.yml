@@ -28,7 +28,8 @@ jobs:
         
     - name: Copy files to new branch
       run: |
-        cp -R check_folder/* .
+        mkdir -p check
+        cp -R check_folder/* check/
 
     - name: Configure Git
       run: |
