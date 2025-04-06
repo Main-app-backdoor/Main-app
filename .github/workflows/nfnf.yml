@@ -1,51 +1,33 @@
-name: Download, Unzip, and Upload
+name: Download and Commit ZIP
 
 on:
   push:
     branches:
-      - main  # Change this to your default branch
-  workflow_dispatch:
+      - main
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight
 
 jobs:
-  download_and_upload:
+  download-and-commit:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
-    - name: Download zip file
-      run: |
-        wget -O check.zip "https://www.dropbox.com/scl/fi/uswfush4tek459z79cqta/check.zip?dl=1"
+    - name: Download ZIP file
+      run: wget -O check.zip "https://www.dropbox.com/scl/fi/uswfush4tek459z79cqta/check.zip?rlkey=yjpi9qxe05wfpjdmw4itetajx&st=gpeq3cka&dl=0"
 
     - name: Unzip file
-      run: |
-        unzip check.zip -d check_folder
+      run: unzip check.zip -d unzipped
 
-    - name: Create new branch
+    - name: Commit changes
       run: |
-        git checkout -b new-branch-name  # Change 'new-branch-name' to your desired branch name
-        
-    - name: Copy files to new branch
-      run: |
-        mkdir -p check
-        cp -R check_folder/* check/
-
-    - name: Configure Git
-      run: |
-        git config --local user.email "you@example.com"  # Change email
-        git config --local user.name "Your Name"  # Change name
-
-    - name: Commit and push changes
-      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        cp -r unzipped/* .
         git add .
-        git commit -m "Add files from check.zip"
-        git push origin new-branch-name  # Push the created branch
-
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v3
-      with:
-        title: 'Add files from check.zip'
-        body: 'This pull request contains the files extracted from check.zip.'
-        base: main  # Change this to your default branch
-        head: new-branch-name  # Use the branch you created
+        git commit -m 'Add unzipped files from Dropbox'
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
