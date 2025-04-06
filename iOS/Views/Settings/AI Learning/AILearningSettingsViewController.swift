@@ -93,11 +93,11 @@ class AILearningSettingsViewController: UITableViewController {
         case .settings:
             return 1
         case .serverSettings:
-            return 1 // Removed server configuration option
+            return 0 // Hide server settings completely
         case .status:
             return 5
         case .actions:
-            return 3
+            return 2 // Removed server-related action
         case .export:
             return 1
         case .none:
@@ -109,7 +109,7 @@ class AILearningSettingsViewController: UITableViewController {
         switch Section(rawValue: indexPath.section) {
         case .about:
             let cell = tableView.dequeueReusableCell(withIdentifier: cellReuseIdentifier, for: indexPath)
-            cell.textLabel?.text = "The AI assistant can learn from your feedback and improve over time."
+            cell.textLabel?.text = "The AI assistant learns from your interactions and adapts to your preferences over time, creating a personalized experience."
             cell.textLabel?.numberOfLines = 0
             cell.accessoryType = .none
             cell.selectionStyle = .none
@@ -122,16 +122,6 @@ class AILearningSettingsViewController: UITableViewController {
             cell.switchValueChanged = { isOn in
                 AILearningManager.shared.setLearningEnabled(isOn)
                 self.tableView.reloadSections(IndexSet(integer: Section.actions.rawValue), with: .automatic)
-            }
-            return cell
-            
-        case .serverSettings:
-            let cell = tableView.dequeueReusableCell(withIdentifier: switchCellReuseIdentifier, for: indexPath) as! SwitchTableViewCell
-            cell.textLabel?.text = "Enable Server Sync"
-            cell.switchControl.isOn = AILearningManager.shared.isServerSyncEnabled
-            cell.switchValueChanged = { isOn in
-                AILearningManager.shared.setServerSyncEnabled(isOn)
-                self.tableView.reloadSections([Section.serverSettings.rawValue, Section.actions.rawValue], with: .automatic)
             }
             return cell
             
@@ -162,16 +152,8 @@ class AILearningSettingsViewController: UITableViewController {
                 cell.textLabel?.text = "Train Model Now"
                 cell.accessoryType = .disclosureIndicator
                 cell.selectionStyle = .default
-                // Disable if learning is disabled or server sync is enabled
-                let enabled = AILearningManager.shared.isLearningEnabled && !AILearningManager.shared.isServerSyncEnabled
-                cell.isUserInteractionEnabled = enabled
-                cell.textLabel?.isEnabled = enabled
-            } else if indexPath.row == 1 {
-                cell.textLabel?.text = "Sync with Server Now"
-                cell.accessoryType = .disclosureIndicator
-                cell.selectionStyle = .default
-                // Disable if server sync is disabled
-                let enabled = AILearningManager.shared.isServerSyncEnabled
+                // Enable if learning is enabled
+                let enabled = AILearningManager.shared.isLearningEnabled
                 cell.isUserInteractionEnabled = enabled
                 cell.textLabel?.isEnabled = enabled
             } else {
@@ -219,8 +201,6 @@ class AILearningSettingsViewController: UITableViewController {
         if indexPath.section == Section.actions.rawValue {
             if indexPath.row == 0 {
                 trainModelNow()
-            } else if indexPath.row == 1 {
-                syncWithServerNow()
             } else {
                 promptClearInteractions()
             }
@@ -231,19 +211,19 @@ class AILearningSettingsViewController: UITableViewController {
     
     // MARK: - Actions
     
-    // Server configuration is now secured with hardcoded values and not user-configurable
+    // Enhanced local learning methods
     
-    private func syncWithServerNow() {
+    private func performEnhancedLearning() {
         // Show activity indicator
         activityIndicator.startAnimating()
         
-        // Start sync
-        Task {
-            await AILearningManager.shared.syncWithServer()
+        // Start enhanced learning
+        DispatchQueue.global(qos: .userInitiated).async {
+            AILearningManager.shared.performEnhancedLocalTraining()
             
             DispatchQueue.main.async {
                 self.activityIndicator.stopAnimating()
-                self.showInfoAlert(title: "Sync Complete", message: "Data has been synchronized with the server.")
+                self.showInfoAlert(title: "Learning Complete", message: "Enhanced local model training completed.")
                 self.tableView.reloadSections(IndexSet(integer: Section.status.rawValue), with: .automatic)
             }
         }

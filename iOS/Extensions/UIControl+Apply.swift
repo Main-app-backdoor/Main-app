@@ -9,13 +9,13 @@ import UIKit
 
 extension UIControl {
     /// Apply a configuration to a UIControl and return it (builder pattern)
-    /// - Parameter configuration: Configuration closure
-    /// - Returns: The configured control
+    /// - Parameter configuration: Configuration closure to apply to this control
+    /// - Returns: Self for chaining
     @discardableResult
-    func apply<T>(_ configuration: (T) -> Void) -> T where T: UIControl {
+    func apply(_ configuration: (Self) -> Void) -> Self {
         // Apply the configuration to self
-        configuration(self as! T)
+        configuration(self)
         // Return self for chaining
-        return self as! T
+        return self
     }
 }

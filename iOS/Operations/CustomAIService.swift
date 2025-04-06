@@ -154,6 +154,14 @@ final class CustomAIService {
             contextDict["sentiment"] = sentimentScore
             Debug.shared.log(message: "Message sentiment score: \(sentimentScore)", type: .debug)
             
+            // Record interaction for learning purposes
+            if AILearningManager.shared.isLearningEnabled {
+                // Record this interaction for future learning
+                DispatchQueue.global(qos: .background).async {
+                    AILearningManager.shared.collectUserDataInBackground()
+                }
+            }
+            
             // Check if we should use CoreML-enhanced analysis
             if self.isCoreMLInitialized {
                 // Use CoreML for enhanced intent analysis
@@ -166,6 +174,18 @@ final class CustomAIService {
                         conversationContext: conversationContext,
                         appContext: context
                     ) { response in
+                        // Record the interaction for learning
+                        if AILearningManager.shared.isLearningEnabled {
+                            let intent = self.getIntentString(from: messageIntent)
+                            let confidence = 0.85 // Using fixed value since we're using ML
+                            AILearningManager.shared.recordInteraction(
+                                userMessage: lastUserMessage,
+                                aiResponse: response,
+                                intent: intent,
+                                confidence: confidence
+                            )
+                        }
+                        
                         // Add a small delay to simulate processing time
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                             completion(.success(response))
@@ -184,12 +204,48 @@ final class CustomAIService {
                     conversationContext: conversationContext,
                     appContext: context
                 )
+                
+                // Record the interaction for learning
+                if AILearningManager.shared.isLearningEnabled {
+                    let intent = self.getIntentString(from: messageIntent)
+                    let confidence = 0.7 // Lower confidence for pattern matching
+                    AILearningManager.shared.recordInteraction(
+                        userMessage: lastUserMessage,
+                        aiResponse: response,
+                        intent: intent,
+                        confidence: confidence
+                    )
+                }
 
                 // Add a small delay to simulate processing time
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                     completion(.success(response))
                 }
             }
+        }
+    }
+    
+    /// Convert MessageIntent to string representation for learning
+    private func getIntentString(from intent: MessageIntent) -> String {
+        switch intent {
+        case .greeting:
+            return "greeting"
+        case .generalHelp:
+            return "help"
+        case .question(let topic):
+            return "question:\(topic)"
+        case .appNavigation(let destination):
+            return "navigate:\(destination)"
+        case .appInstall(let appName):
+            return "install:\(appName)"
+        case .appSign(let appName):
+            return "sign:\(appName)"
+        case .sourceAdd(let url):
+            return "add_source:\(url)"
+        case .webSearch(let query):
+            return "search:\(query)"
+        case .unknown:
+            return "unknown"
         }
     }
     
@@ -209,6 +265,7 @@ final class CustomAIService {
         case appInstall(appName: String)
         case appSign(appName: String)
         case sourceAdd(url: String)
+        case webSearch(query: String)
         case generalHelp
         case greeting
         case unknown
@@ -225,6 +282,12 @@ final class CustomAIService {
         // Check for help requests
         if lowercasedMessage.contains("help") || lowercasedMessage.contains("how do i") || lowercasedMessage.contains("how to") {
             return .generalHelp
+        }
+        
+        // Check for web search requests
+        if let match = lowercasedMessage.range(of: "(?:search|google|look up|find)\\s+(?:for\\s+)?(?:information\\s+about\\s+)?([^?.,]+)", options: .regularExpression) {
+            let query = String(lowercasedMessage[match]).replacing(regularExpression: "(?:search|google|look up|find)\\s+(?:for\\s+)?(?:information\\s+about\\s+)?", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return .webSearch(query: query)
         }
 
         // Use regex patterns to identify specific intents
@@ -318,9 +381,12 @@ final class CustomAIService {
             case let .sourceAdd(url):
                 return "I'll add the source from \"\(url)\" to your repositories. [add source:\(url)]"
 
+            case let .webSearch(query):
+                return "Let me search the web for information about \"\(query)\". [web search:\(query)]"
+                
             case .unknown:
                 // Extract any potential commands from the message using regex
-                let commandPattern = "(sign|navigate to|install|add source)\\s+([\\w\\s.:/\\-]+)"
+                let commandPattern = "(sign|navigate to|install|add source|search)\\s+([\\w\\s.:/\\-]+)"
                 if let match = userMessage.range(of: commandPattern, options: .regularExpression) {
                     let commandText = String(userMessage[match])
                     let components = commandText.split(separator: " ", maxSplits: 1).map(String.init)

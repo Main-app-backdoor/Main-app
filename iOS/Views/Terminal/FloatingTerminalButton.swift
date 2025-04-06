@@ -179,7 +179,9 @@ class FloatingTerminalButton: UIButton {
     }
 }
 
-// Add notification name for showing terminal
+// Add notification names for terminal button control
 extension Notification.Name {
     static let showTerminal = Notification.Name("showTerminal")
+    static let showTerminalButton = Notification.Name("showTerminalButton")
+    static let hideTerminalButton = Notification.Name("hideTerminalButton")
 }

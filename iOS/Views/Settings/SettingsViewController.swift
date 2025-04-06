@@ -237,12 +237,12 @@ extension SettingsViewController {
                 cell.selectionStyle = .default
                 
             case "Terminal Button":
-                let isEnabled = UserDefaults.standard.bool(forKey: "show_terminal_button") ?? true
-                cell.accessoryView = UISwitch().apply { toggle in
-                    (toggle as UISwitch).isOn = isEnabled
-                    toggle.onTintColor = .tintColor
-                    toggle.addTarget(self, action: #selector(terminalButtonToggled(_:)), for: .valueChanged)
-                }
+                let isEnabled = UserDefaults.standard.bool(forKey: "show_terminal_button")
+                let toggleSwitch = UISwitch()
+                toggleSwitch.isOn = isEnabled
+                toggleSwitch.onTintColor = .tintColor
+                toggleSwitch.addTarget(self, action: #selector(terminalButtonToggled(_:)), for: .valueChanged)
+                cell.accessoryView = toggleSwitch
                 cell.selectionStyle = .none
 
             case String.localized("SETTINGS_VIEW_CONTROLLER_CELL_VIEW_LOGS"):
@@ -354,5 +354,13 @@ private extension SettingsViewController {
                 Debug.shared.log(message: "Failed to open file.")
             }
         }
+    }
+    
+    @objc func terminalButtonToggled(_ sender: UISwitch) {
+        UserDefaults.standard.set(sender.isOn, forKey: "show_terminal_button")
+        NotificationCenter.default.post(
+            name: sender.isOn ? .showTerminalButton : .hideTerminalButton,
+            object: nil
+        )
     }
 }
