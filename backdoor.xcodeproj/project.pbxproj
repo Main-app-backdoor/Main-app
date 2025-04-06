@@ -57,29 +57,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				AppContextManager+ServerSync.swift,
-				AppContextManager+UserDefaults.swift,
-				Application.swift,
-				AuthenticationCache.swift,
-				Authenticator.swift,
-				BasicAuthorization.swift,
-				BearerAuthorization.swift,
-				GuardMiddleware.swift,
-				RedirectMiddleware.swift,
-				SessionAuthenticatable.swift,
-				Bcrypt.swift,
-				Application+Extensions.swift,
-				AppContextManager+Extensions.swift,
-				AppContextManager+Functionalities.swift,
-				AppContextManager+Handling.swift,
-				AppContextManager+Initializations.swift,
-				AppContextManager+Interactions.swift,
-				AppContextManager+Networking.swift,
-				AppContextManager+Setup.swift,
-				AppContextManager+Subscriptions.swift,
-				AppContextManager+Updates.swift,
-				AppContextManager+UserManagement.swift,
-				AppContextManager+WebView.swift,
 			);
 			target = 33BA378A2BF8159F00FF530A /* backdoor */;
 		};
@@ -285,6 +262,12 @@
 				33BE87A32C72E1220044D245 /* XCRemoteSwiftPackageReference "SWCompression" */,
 				33BDD0A42C76EA4100AF6169 /* XCRemoteSwiftPackageReference "UIOnboarding-18" */,
 				33BDD0BE2C7866FE00AF6169 /* XCRemoteSwiftPackageReference "vapor" */,
+				33ABCDEF1234567890ABCDEF /* XCRemoteSwiftPackageReference "CryptoSwift" */,
+				33ABCDEF1234567890ABCDE1 /* XCRemoteSwiftPackageReference "SnapKit" */,
+				33ABCDEF1234567890ABCDE2 /* XCRemoteSwiftPackageReference "lottie-spm" */,
+				33ABCDEF1234567890ABCDE3 /* XCRemoteSwiftPackageReference "SwiftUIX" */,
+				33ABCDEF1234567890ABCDE4 /* XCRemoteSwiftPackageReference "Moya" */,
+				33ABCDEF1234567890ABCDE5 /* XCRemoteSwiftPackageReference "R.swift" */,
 			);
 			preferredProjectObjectVersion = 56;
 			productRefGroup = 33BA378C2BF8159F00FF530A /* Products */;
@@ -460,7 +443,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -477,7 +460,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = backdoor;
+				INFOPLIST_KEY_CFBundleDisplayName = Backdoor;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright (c) 2024 Samara M (khcrysalis)";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -502,7 +485,7 @@
 					"-w",
 					"-Wno-everything",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bdg.backdoor;
+				PRODUCT_BUNDLE_IDENTIFIER = kh.crysalis.backdoor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -530,7 +513,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = backdoor;
+				INFOPLIST_KEY_CFBundleDisplayName = Backdoor;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright (c) 2024 Samara M (khcrysalis)";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -555,7 +538,7 @@
 					"-w",
 					"-Wno-everything",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.bdg.backdoor;
+				PRODUCT_BUNDLE_IDENTIFIER = kh.crysalis.backdoor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -595,7 +578,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		3322FF4D2BFEE5B9001768D8 /* XCRemoteSwiftPackageReference "Nuke" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/kean/Nuke";
+			repositoryURL = "https://github.com/kean/Nuke.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 12.7.0;
@@ -603,7 +586,7 @@
 		};
 		336EEE7F2C32367C0011188D /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.9.19;
@@ -611,7 +594,7 @@
 		};
 		33BDD0A42C76EA4100AF6169 /* XCRemoteSwiftPackageReference "UIOnboarding-18" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/khcrysalis/UIOnboarding-18";
+			repositoryURL = "https://github.com/khcrysalis/UIOnboarding-18.git";
 			requirement = {
 				branch = main;
 				kind = branch;
@@ -619,7 +602,7 @@
 		};
 		33BDD0BE2C7866FE00AF6169 /* XCRemoteSwiftPackageReference "vapor" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/vapor/vapor";
+			repositoryURL = "https://github.com/vapor/vapor.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 4.104.0;
@@ -627,7 +610,7 @@
 		};
 		33BE87A32C72E1220044D245 /* XCRemoteSwiftPackageReference "SWCompression" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/tsolomko/SWCompression";
+			repositoryURL = "https://github.com/tsolomko/SWCompression.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 4.8.6;
@@ -635,7 +618,7 @@
 		};
 		33C0409C2C30DD3E00243D90 /* XCRemoteSwiftPackageReference "AlertKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sparrowcode/AlertKit";
+			repositoryURL = "https://github.com/sparrowcode/AlertKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 5.1.9;
@@ -643,10 +626,114 @@
 		};
 		D0AA9D522BFF02AF00A65D45 /* XCRemoteSwiftPackageReference "OpenSSL-Swift-Package" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/HAHALOSAH/OpenSSL-Swift-Package";
+			repositoryURL = "https://github.com/HAHALOSAH/OpenSSL-Swift-Package.git";
 			requirement = {
 				branch = main;
 				kind = branch;
+			};
+		};
+		3322FF4D2BFEE5B9001768D8 /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.7.0;
+			};
+		};
+		336EEE7F2C32367C0011188D /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
+		33BDD0A42C76EA4100AF6169 /* XCRemoteSwiftPackageReference "UIOnboarding-18" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/khcrysalis/UIOnboarding-18.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		33BDD0BE2C7866FE00AF6169 /* XCRemoteSwiftPackageReference "vapor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/vapor.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.104.0;
+			};
+		};
+		33BE87A32C72E1220044D245 /* XCRemoteSwiftPackageReference "SWCompression" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tsolomko/SWCompression.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.8.6;
+			};
+		};
+		33C0409C2C30DD3E00243D90 /* XCRemoteSwiftPackageReference "AlertKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparrowcode/AlertKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.9;
+			};
+		};
+		D0AA9D522BFF02AF00A65D45 /* XCRemoteSwiftPackageReference "OpenSSL-Swift-Package" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/HAHALOSAH/OpenSSL-Swift-Package.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		338765AB2D12345678901234 /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/krzyzanowskim/CryptoSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.3;
+			};
+		};
+		338765AC2D12345678901235 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.1;
+			};
+		};
+		338765AD2D12345678901236 /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.1;
+			};
+		};
+		338765AE2D12345678901237 /* XCRemoteSwiftPackageReference "SwiftUIX" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SwiftUIX/SwiftUIX.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+		338765AF2D12345678901238 /* XCRemoteSwiftPackageReference "Moya" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Moya/Moya.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 15.0.0;
+			};
+		};
+		338765B02D12345678901239 /* XCRemoteSwiftPackageReference "R.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mac-cain13/R.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -701,6 +788,36 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D0AA9D522BFF02AF00A65D45 /* XCRemoteSwiftPackageReference "OpenSSL-Swift-Package" */;
 			productName = OpenSSL;
+		};
+		33ABCDF01234567890ABCDEF /* CryptoSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33ABCDEF1234567890ABCDEF /* XCRemoteSwiftPackageReference "CryptoSwift" */;
+			productName = CryptoSwift;
+		};
+		33ABCDF11234567890ABCDE1 /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33ABCDEF1234567890ABCDE1 /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = SnapKit;
+		};
+		33ABCDF21234567890ABCDE2 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33ABCDEF1234567890ABCDE2 /* XCRemoteSwiftPackageReference "lottie-spm" */;
+			productName = Lottie;
+		};
+		33ABCDF31234567890ABCDE3 /* SwiftUIX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33ABCDEF1234567890ABCDE3 /* XCRemoteSwiftPackageReference "SwiftUIX" */;
+			productName = SwiftUIX;
+		};
+		33ABCDF41234567890ABCDE4 /* Moya */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33ABCDEF1234567890ABCDE4 /* XCRemoteSwiftPackageReference "Moya" */;
+			productName = Moya;
+		};
+		33ABCDF51234567890ABCDE5 /* RswiftLibrary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33ABCDEF1234567890ABCDE5 /* XCRemoteSwiftPackageReference "R.swift" */;
+			productName = RswiftLibrary;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
