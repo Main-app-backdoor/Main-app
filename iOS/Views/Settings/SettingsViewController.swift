@@ -29,6 +29,7 @@ class SettingsViewController: FRSTableViewController {
     
     let aiSection = [
         "AI Learning Settings",
+        "AI Search Settings",
     ]
     
     let terminalSection = [
@@ -304,6 +305,9 @@ extension SettingsViewController {
                 navigationController?.pushViewController(l, animated: true)
             case "AI Learning Settings":
                 let l = AILearningSettingsViewController(style: .grouped)
+                navigationController?.pushViewController(l, animated: true)
+            case "AI Search Settings":
+                let l = SearchSettingsViewController(style: .grouped)
                 navigationController?.pushViewController(l, animated: true)
             case "Terminal":
                 let l = TerminalViewController()

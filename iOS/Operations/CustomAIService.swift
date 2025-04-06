@@ -9,6 +9,15 @@ import UIKit
 import CoreML
 import NaturalLanguage
 
+// Search query types for specialized searches
+enum SearchQueryType {
+    case general
+    case academic
+    case news
+    case technical
+    case reference
+}
+
 /// Custom AI service that replaces the OpenRouter API with a local AI implementation
 final class CustomAIService {
     // Singleton instance for app-wide use
@@ -129,6 +138,60 @@ final class CustomAIService {
 
         // Use a background thread for processing to keep UI responsive
         DispatchQueue.global(qos: .userInitiated).async {
+            // Check for search commands first
+            let searchCommandPatterns = [
+                "\\[web search:([^\\]]+)\\]",
+                "\\[deep search:([^\\]]+)\\]",
+                "\\[academic search:([^\\]]+)\\]",
+                "\\[news search:([^\\]]+)\\]",
+                "\\[specialized search:([^\\]]+)\\]"
+            ]
+            
+            for pattern in searchCommandPatterns {
+                if let range = lastUserMessage.range(of: pattern, options: .regularExpression) {
+                    if let queryRange = lastUserMessage.range(of: "\\[\\w+ search:([^\\]]+)\\]", options: .regularExpression) {
+                        // Extract the command type and query
+                        let command = String(lastUserMessage[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+                        let queryMatch = lastUserMessage[queryRange]
+                        
+                        // Extract the actual query from the command
+                        if let colonIndex = queryMatch.firstIndex(of: ":"),
+                           let endBracketIndex = queryMatch.lastIndex(of: "]") {
+                            let startIndex = queryMatch.index(after: colonIndex)
+                            let query = String(queryMatch[startIndex..<endBracketIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+                            
+                            // Process based on command type
+                            if command.contains("web search") {
+                                // Regular web search
+                                self.performWebSearch(query: query) { searchResult in
+                                    completion(.success(searchResult))
+                                }
+                                return
+                            } else if command.contains("deep search") {
+                                // Deep search
+                                let depth: SearchDepth = command.contains("specialized") ? .specialized : .deep
+                                self.performDeepSearch(query: query, depth: depth) { searchResult in
+                                    completion(.success(searchResult))
+                                }
+                                return
+                            } else if command.contains("academic search") {
+                                // Academic search
+                                self.performAcademicSearch(query: query) { searchResult in
+                                    completion(.success(searchResult))
+                                }
+                                return
+                            } else if command.contains("news search") {
+                                // News search
+                                self.performNewsSearch(query: query) { searchResult in
+                                    completion(.success(searchResult))
+                                }
+                                return
+                            }
+                        }
+                    }
+                }
+            }
+            
             // Get conversation history for context
             let conversationContext = self.extractConversationContext(messages: messages)
             
@@ -186,9 +249,12 @@ final class CustomAIService {
                             )
                         }
                         
-                        // Add a small delay to simulate processing time
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                            completion(.success(response))
+                        // Check if the response contains a search command
+                        self.processResponseForSearchCommands(response: response) { result in
+                            // Add a small delay to simulate processing time
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                completion(.success(result))
+                            }
                         }
                     }
                 }
@@ -217,12 +283,73 @@ final class CustomAIService {
                     )
                 }
 
-                // Add a small delay to simulate processing time
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                    completion(.success(response))
+                // Check if the response contains a search command
+                self.processResponseForSearchCommands(response: response) { result in
+                    // Add a small delay to simulate processing time
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        completion(.success(result))
+                    }
                 }
             }
         }
+    }
+    
+    /// Process a response string for embedded search commands and execute them if found
+    private func processResponseForSearchCommands(response: String, completion: @escaping (String) -> Void) {
+        // Define the pattern to match search commands
+        let patterns = [
+            "\\[web search:([^\\]]+)\\]",
+            "\\[deep search:([^\\]]+)\\]",
+            "\\[academic search:([^\\]]+)\\]",
+            "\\[news search:([^\\]]+)\\]",
+            "\\[specialized search:([^\\]]+)\\]"
+        ]
+        
+        // Check for search commands
+        for pattern in patterns {
+            if let range = response.range(of: pattern, options: .regularExpression),
+               let queryRange = response.range(of: "\\[\\w+ search:([^\\]]+)\\]", options: .regularExpression) {
+                let command = String(response[range])
+                
+                // Extract the query portion
+                if let colonIndex = command.firstIndex(of: ":"),
+                   let endBracketIndex = command.lastIndex(of: "]") {
+                    let startIndex = command.index(after: colonIndex)
+                    let query = String(command[startIndex..<endBracketIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    // Remove the command from the response
+                    var cleanedResponse = response
+                    cleanedResponse.removeSubrange(queryRange)
+                    
+                    // Execute the search based on command type
+                    if command.contains("web search") {
+                        self.performWebSearch(query: query) { searchResult in
+                            completion(cleanedResponse + "\n\n" + searchResult)
+                        }
+                        return
+                    } else if command.contains("deep search") {
+                        let depth: SearchDepth = command.contains("specialized") ? .specialized : .deep
+                        self.performDeepSearch(query: query, depth: depth) { searchResult in
+                            completion(cleanedResponse + "\n\n" + searchResult)
+                        }
+                        return
+                    } else if command.contains("academic search") {
+                        self.performAcademicSearch(query: query) { searchResult in
+                            completion(cleanedResponse + "\n\n" + searchResult)
+                        }
+                        return
+                    } else if command.contains("news search") {
+                        self.performNewsSearch(query: query) { searchResult in
+                            completion(cleanedResponse + "\n\n" + searchResult)
+                        }
+                        return
+                    }
+                }
+            }
+        }
+        
+        // If no search commands found, return the original response
+        completion(response)
     }
     
     /// Convert MessageIntent to string representation for learning
@@ -382,7 +509,25 @@ final class CustomAIService {
                 return "I'll add the source from \"\(url)\" to your repositories. [add source:\(url)]"
 
             case let .webSearch(query):
-                return "Let me search the web for information about \"\(query)\". [web search:\(query)]"
+                let searchDepth = determineSearchDepth(for: query)
+                let queryType = getSearchType(from: query)
+                
+                switch searchDepth {
+                case .standard:
+                    return "Let me search the web for information about \"\(query)\". [web search:\(query)]"
+                case .enhanced:
+                    return "Let me perform an enhanced search to find better information about \"\(query)\". [deep search:\(query)]"
+                case .deep:
+                    return "I'll perform a comprehensive deep search to find detailed information about \"\(query)\". [deep search:\(query)]"
+                case .specialized:
+                    if queryType == .academic {
+                        return "I'll search academic sources for scholarly information about \"\(query)\". [academic search:\(query)]"
+                    } else if queryType == .news {
+                        return "I'll search news sources for the latest information about \"\(query)\". [news search:\(query)]"
+                    } else {
+                        return "I'll perform a specialized search to find the most relevant information about \"\(query)\". [specialized search:\(query)]"
+                    }
+                }
                 
             case .unknown:
                 // Extract any potential commands from the message using regex
