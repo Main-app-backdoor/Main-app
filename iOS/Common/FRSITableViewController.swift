@@ -4,7 +4,13 @@
 //
 // Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted under the terms of the Proprietary Software License.
 
-class FRSITableViewCOntroller: FRSTableViewController {
+import UIKit
+import Foundation
+
+// Import the necessary signing data types
+import SwiftUI // For ObservableObject
+
+class FRSITableViewController: FRSTableViewController {
     var signingDataWrapper: SigningDataWrapper
     var mainOptions: SigningMainDataWrapper
 
