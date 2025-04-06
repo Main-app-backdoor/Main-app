@@ -373,26 +373,4 @@ class AILearningSettingsViewController: UITableViewController {
     }
 }
 
-// MARK: - Switch Cell
-
-class SwitchTableViewCell: UITableViewCell {
-    
-    let switchControl = UISwitch()
-    var switchValueChanged: ((Bool) -> Void)?
-    
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        
-        switchControl.addTarget(self, action: #selector(switchChanged), for: .valueChanged)
-        accessoryView = switchControl
-        selectionStyle = .none
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    @objc private func switchChanged() {
-        switchValueChanged?(switchControl.isOn)
-    }
-}
+// Implementation moved to shared SwitchTableViewCell.swift
