@@ -21,7 +21,7 @@ jobs:
       run: |
         start_time=$(date +%s)
         mkdir -p model
-        curl -L -o model/coreml_model.mlmodel \
+        curl -L -o model/model_1.0.0.mlmodel \
           "https://www.dropbox.com/scl/fi/2xarhyii46tr9amkqh764/model_1.0.0.mlmodel?rlkey=j3cxmpjhxj8bbwzw11j1hy54c&st=zapgzo7q&dl=0"
         
         # Verify the file exists and is not empty
@@ -40,7 +40,7 @@ jobs:
         
         # Track the model file with Git LFS
         git lfs track "model/model_1.0.0.mlmodel"
-        git add .gitattributes model/coreml_model.mlmodel
+        git add .gitattributes model/model_1.0.0.mlmodel
         
         # Configure Git
         git config --local user.email "actions@github.com"
@@ -62,7 +62,7 @@ jobs:
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v6
       with:
-        title: "Add coreml_model.mlmodel from Dropbox"
+        title: "Add model_1.0.0.mlmodel from Dropbox"
         body: "This pull request adds the model downloaded from Dropbox."
         head: update-model
         base: main  # Change to your target branch
