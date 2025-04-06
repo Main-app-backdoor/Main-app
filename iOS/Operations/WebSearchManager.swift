@@ -21,11 +21,11 @@ enum SourceType {
 }
 
 /// Search depth levels for different search intensities
-enum SearchDepth {
-    case standard    // Basic search
-    case enhanced    // Follow top links
-    case deep        // Follow multiple links with recursive crawling
-    case specialized // Domain-specific searches (academic, news, etc.)
+enum SearchDepth: Int {
+    case standard = 0    // Basic search
+    case enhanced = 1    // Follow top links
+    case deep = 2        // Follow multiple links with recursive crawling
+    case specialized = 3 // Domain-specific searches (academic, news, etc.)
 }
 
 /// Basic search result model

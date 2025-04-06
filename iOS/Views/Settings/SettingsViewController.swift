@@ -360,11 +360,5 @@ private extension SettingsViewController {
         }
     }
     
-    @objc func terminalButtonToggled(_ sender: UISwitch) {
-        UserDefaults.standard.set(sender.isOn, forKey: "show_terminal_button")
-        NotificationCenter.default.post(
-            name: sender.isOn ? .showTerminalButton : .hideTerminalButton,
-            object: nil
-        )
-    }
+    // Terminal button toggle handler moved to SettingsViewController+Terminal.swift
 }
