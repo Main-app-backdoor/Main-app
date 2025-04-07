@@ -36,12 +36,6 @@ jobs:
           done
           cat cppcheck_errors.txt
 
-      - name: Upload Cppcheck errors
-        uses: actions/upload-artifact@v3
-        with:
-          name: cppcheck-errors
-          path: cppcheck_errors.txt
-
   analyze_swift:
     runs-on: macos-latest
     steps:
@@ -65,12 +59,6 @@ jobs:
             --reporter detailed \
             > swiftlint_errors.txt 2>&1 || true
           cat swiftlint_errors.txt
-
-      - name: Upload SwiftLint errors
-        uses: actions/upload-artifact@v3
-        with:
-          name: swiftlint-errors
-          path: swiftlint_errors.txt
 
   analyze_infer:
     runs-on: ubuntu-22.04
@@ -99,59 +87,34 @@ jobs:
             > infer_errors.txt 2>&1 || true
           cat infer_errors.txt
 
-      - name: Upload Infer errors
-        uses: actions/upload-artifact@v3
-        with:
-          name: infer-errors
-          path: infer_errors.txt
-
-  create_release:
+  create_pull_request:
     runs-on: ubuntu-22.04
     needs: [analyze_cpp, analyze_swift, analyze_infer]
     steps:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Download analysis artifacts
-        uses: actions/download-artifact@v3
-        with:
-          names: |
-            cppcheck-errors
-            swiftlint-errors
-            infer-errors
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: analysis-results-${{ github.sha }}
-          release_name: Analysis Results
-          body: Analysis results for commit ${{ github.sha }}
-          draft: false
-          prerelease: false
+      - name: Create new branch
+        run: git checkout -b analysis-results
 
-      - name: Upload Cppcheck errors
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: cppcheck_errors.txt
-          asset_name: cppcheck_errors.txt
-          asset_content_type: text/plain
+      - name: Commit analysis results
+        run: |
+          git add cppcheck_errors.txt swiftlint_errors.txt infer_errors.txt
+          git commit -m "Add analysis results"
 
-      - name: Upload SwiftLint errors
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: swiftlint_errors.txt
-          asset_name: swiftlint_errors.txt
-          asset_content_type: text/plain
+      - name: Push changes
+        run: git push origin analysis-results
 
-      - name: Upload Infer errors
-        uses: actions/upload-release-asset@v1
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: infer_errors.txt
-          asset_name: infer_errors.txt
-          asset_content_type: text/plain
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Add analysis results"
+          branch: analysis-results
+          title: "Add analysis results"
+          body: "This pull request adds the analysis results files."
