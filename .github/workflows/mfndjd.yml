@@ -34,7 +34,10 @@ jobs:
               --error-exitcode=0 \
               "$file" 2>> cppcheck_errors.txt || true
           done
-          cat cppcheck_errors.txt
+          cat cppcheck_errors.txt || true
+
+      - name: Ensure cppcheck_errors.txt exists
+        run: echo " " > cppcheck_errors.txt || true
 
   analyze_swift:
     runs-on: macos-latest
@@ -58,7 +61,10 @@ jobs:
             --strict \
             --reporter detailed \
             > swiftlint_errors.txt 2>&1 || true
-          cat swiftlint_errors.txt
+          cat swiftlint_errors.txt || true
+
+      - name: Ensure swiftlint_errors.txt exists
+        run: echo " " > swiftlint_errors.txt || true
 
   analyze_infer:
     runs-on: ubuntu-22.04
@@ -85,7 +91,10 @@ jobs:
             --keep-going \
             --jobs 4 \
             > infer_errors.txt 2>&1 || true
-          cat infer_errors.txt
+          cat infer_errors.txt || true
+
+      - name: Ensure infer_errors.txt exists
+        run: echo " " > infer_errors.txt || true
 
   create_pull_request:
     runs-on: ubuntu-22.04
