@@ -18,6 +18,9 @@ jobs:
       - name: Install Cppcheck
         run: sudo apt-get update && sudo apt-get install -y cppcheck
 
+      - name: Create cppcheck_errors.txt file
+        run: echo " " > cppcheck_errors.txt || true
+
       - name: Run Cppcheck
         continue-on-error: true
         run: |
@@ -32,12 +35,11 @@ jobs:
               --force \
               --verbose \
               --error-exitcode=0 \
+              -Iinclude \
+              -Isrc \
               "$file" 2>> cppcheck_errors.txt || true
           done
           cat cppcheck_errors.txt || true
-
-      - name: Ensure cppcheck_errors.txt exists
-        run: echo " " > cppcheck_errors.txt || true
 
   analyze_swift:
     runs-on: macos-latest
