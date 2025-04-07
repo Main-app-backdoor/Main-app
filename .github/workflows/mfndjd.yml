@@ -52,8 +52,14 @@ jobs:
       - name: Install SwiftLint
         run: brew install swiftlint
 
+      - name: Install SwiftFormat
+        run: brew install swiftformat
+
       - name: Verify SwiftLint Installation
         run: swiftlint version
+
+      - name: Verify SwiftFormat Installation
+        run: swiftformat --version
 
       - name: Run SwiftLint
         continue-on-error: true
@@ -65,8 +71,20 @@ jobs:
             > swiftlint_errors.txt 2>&1 || true
           cat swiftlint_errors.txt || true
 
+      - name: Run SwiftFormat
+        continue-on-error: true
+        run: |
+          # Run SwiftFormat on the entire codebase
+          swiftformat . \
+            --swiftversion 5.0 \
+            > swiftformat_errors.txt 2>&1 || true
+          cat swiftformat_errors.txt || true
+
       - name: Ensure swiftlint_errors.txt exists
         run: echo " " > swiftlint_errors.txt || true
+
+      - name: Ensure swiftformat_errors.txt exists
+        run: echo " " > swiftformat_errors.txt || true
 
   analyze_infer:
     runs-on: ubuntu-22.04
@@ -115,7 +133,7 @@ jobs:
 
       - name: Commit analysis results
         run: |
-          git add cppcheck_errors.txt swiftlint_errors.txt infer_errors.txt
+          git add cppcheck_errors.txt swiftlint_errors.txt swiftformat_errors.txt infer_errors.txt
           git commit -m "Add analysis results"
 
       - name: Push changes
