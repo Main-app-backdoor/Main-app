@@ -23,7 +23,7 @@ jobs:
       - name: Install SwiftLint
         run: brew install swiftlint
       - name: Run SwiftLint
-        run: swiftlint lint --path shared/ IOS/
+        run: swiftlint lint shared/ IOS/
 
   analyze_infer:
     runs-on: ubuntu-22.04
