@@ -13,7 +13,8 @@ jobs:
       - name: Install Cppcheck
         run: sudo apt-get update && sudo apt-get install -y cppcheck
       - name: Run Cppcheck
-        run: cppcheck --enable=all --inconclusive --quiet --std=c++11 --language=c++ --force --recursive shared/ IOS/
+        run: |
+          find shared/ IOS/ -name "*.cpp" -o -name "*.cxx" -o -name "*.cc" | xargs cppcheck --enable=all --inconclusive --quiet --std=c++11 --language=c++ --force
 
   analyze_swift:
     runs-on: macos-latest
