@@ -1,7 +1,9 @@
 name: Code Analysis
+
 on:
   push:
   pull_request:
+
 jobs:
   analyze_cpp:
     runs-on: ubuntu-22.04
@@ -11,22 +13,18 @@ jobs:
       - name: Install Cppcheck
         run: sudo apt-get update && sudo apt-get install -y cppcheck
       - name: Run Cppcheck
-        uses: tonybaloney/cppcheck-action@master
-        with:
-          args: --enable=all .
-      - name: Install Clang-Tidy
-        run: sudo apt-get install -y clang-tidy
-      - name: Run Clang-Tidy
-        run: clang-tidy --quiet $(find . -name '*.cpp' -o -name '*.cxx' -o -name '*.cc') -- -I.
+        run: cppcheck --enable=all --inconclusive --quiet --std=c++11 --language=c++ --force --recursive shared/ IOS/
+
   analyze_swift:
-    runs-on: ubuntu-22.04
+    runs-on: macos-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v3
+      - name: Install SwiftLint
+        run: brew install swiftlint
       - name: Run SwiftLint
-        uses: norio-nomura/action-swiftlint@master
-        with:
-          args: --reporter github-actions-logging .
+        run: swiftlint lint --path shared/ IOS/
+
   analyze_infer:
     runs-on: ubuntu-22.04
     steps:
