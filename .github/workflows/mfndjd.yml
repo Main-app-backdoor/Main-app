@@ -21,9 +21,6 @@ jobs:
       - name: Run Cppcheck
         continue-on-error: true
         run: |
-          # Create output directory
-          mkdir -p analysis-reports
-          
           # Find all C++ files and process them in smaller batches
           find . -type f \( -name "*.cpp" -o -name "*.cxx" -o -name "*.cc" \) | \
           while read -r file; do
@@ -35,8 +32,9 @@ jobs:
               --force \
               --verbose \
               --error-exitcode=0 \
-              "$file" 2>> analysis-reports/cppcheck_errors.txt || true
+              "$file" 2>> cppcheck_errors.txt || true
           done
+          cat cppcheck_errors.txt
 
   analyze_swift:
     runs-on: macos-latest
@@ -52,7 +50,6 @@ jobs:
       - name: Run SwiftLint
         continue-on-error: true
         run: |
-          mkdir -p analysis-reports
           # Scan all Swift files with detailed output
           find . -type f -name "*.swift" | \
           while read -r file; do
@@ -60,8 +57,9 @@ jobs:
               --path "$file" \
               --reporter detailed \
               --strict \
-              >> analysis-reports/swiftlint_errors.txt 2>&1 || true
+              >> swiftlint_errors.txt 2>&1 || true
           done
+          cat swiftlint_errors.txt
 
   analyze_infer:
     runs-on: ubuntu-22.04
@@ -83,50 +81,9 @@ jobs:
       - name: Run Infer
         continue-on-error: true
         run: |
-          mkdir -p analysis-reports
           infer capture -- make
           infer analyze \
             --keep-going \
             --jobs 4 \
-            > analysis-reports/infer_errors.txt 2>&1 || true
-
-  combine_and_report:
-    runs-on: ubuntu-22.04
-    needs: [analyze_cpp, analyze_swift, analyze_infer]
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref || github.ref }}
-
-      - name: Combine and Process Results
-        run: |
-          mkdir -p analysis-reports
-          timestamp=$(date +%Y%m%d-%H%M%S)
-
-          # Combine all reports with headers
-          echo "# Code Analysis Report - $timestamp" > analysis-reports/combined_report_${timestamp}.md
-          echo "## Cppcheck Results" >> analysis-reports/combined_report_${timestamp}.md
-          cat analysis-reports/cppcheck_errors.txt >> analysis-reports/combined_report_${timestamp}.md 2>/dev/null || echo "No Cppcheck results found"
-
-          echo "## SwiftLint Results" >> analysis-reports/combined_report_${timestamp}.md
-          cat analysis-reports/swiftlint_errors.txt >> analysis-reports/combined_report_${timestamp}.md 2>/dev/null || echo "No SwiftLint results found"
-
-          echo "## Infer Results" >> analysis-reports/combined_report_${timestamp}.md
-          cat analysis-reports/infer_errors.txt >> analysis-reports/combined_report_${timestamp}.md 2>/dev/null || echo "No Infer results found"
-
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: "analysis-report-${{ github.sha }}"
-          release_name: "Code Analysis Report - ${{ github.sha }}"
-          body: |
-            Automated code analysis report generated on ${{ github.event_name }}.
-            Commit: ${{ github.sha }}
-            Contains results from Cppcheck, SwiftLint, and Infer.
-            See attached report for details.
-          draft: false
-          prerelease: false
-          files: analysis-reports/combined_report_${timestamp}.md
+            > infer_errors.txt 2>&1 || true
+          cat infer_errors.txt
