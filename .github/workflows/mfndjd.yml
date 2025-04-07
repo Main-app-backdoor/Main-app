@@ -1,153 +1,60 @@
-name: Code Analysis
+combine_and_report:
+  runs-on: ubuntu-22.04
+  needs: [analyze_cpp, analyze_swift, analyze_infer]
+  steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.head_ref || github.ref }}
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+    - name: Download Cppcheck results
+      uses: actions/download-artifact@v3
+      with:
+        name: cppcheck-results
+        path: artifacts/cppcheck-results
 
-jobs:
-  analyze_cpp:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Gets full history for better analysis
+    - name: Download SwiftLint results
+      uses: actions/download-artifact@v3
+      with:
+        name: swiftlint-results
+        path: artifacts/swiftlint-results
 
-      - name: Install Cppcheck
-        run: sudo apt-get update && sudo apt-get install -y cppcheck
+    - name: Download Infer results
+      uses: actions/download-artifact@v3
+      with:
+        name: infer-results
+        path: artifacts/infer-results
 
-      - name: Run Cppcheck
-        continue-on-error: true
-        run: |
-          # Create output directory
-          mkdir -p analysis-reports
-          
-          # Find all C++ files and process them in smaller batches
-          find . -type f \( -name "*.cpp" -o -name "*.cxx" -o -name "*.cc" \) | \
-          while read -r file; do
-            cppcheck \
-              --enable=all \
-              --inconclusive \
-              --std=c++11 \
-              --language=c++ \
-              --force \
-              --verbose \
-              --error-exitcode=0 \
-              "$file" 2>> analysis-reports/cppcheck_errors.txt || true
-          done
+    - name: Combine and Process Results
+      run: |
+        mkdir -p analysis-reports
+        timestamp=$(date +%Y%m%d-%H%M%S)
 
-      - name: Upload Cppcheck results
-        uses: actions/upload-artifact@v3
-        with:
-          name: cppcheck-results
-          path: analysis-reports/cppcheck_errors.txt
+        # Combine all reports with headers
+        echo "# Code Analysis Report - $timestamp" > analysis-reports/combined_report_${timestamp}.md
+        echo "## Cppcheck Results" >> analysis-reports/combined_report_${timestamp}.md
+        cat artifacts/cppcheck-results/cppcheck_errors.txt >> analysis-reports/combined_report_${timestamp}.md 2>/dev/null || echo "No Cppcheck results found"
 
-  analyze_swift:
-    runs-on: macos-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+        echo "## SwiftLint Results" >> analysis-reports/combined_report_${timestamp}.md
+        cat artifacts/swiftlint-results/swiftlint_errors.txt >> analysis-reports/combined_report_${timestamp}.md 2>/dev/null || echo "No SwiftLint results found"
 
-      - name: Install SwiftLint
-        run: brew install swiftlint
+        echo "## Infer Results" >> analysis-reports/combined_report_${timestamp}.md
+        cat artifacts/infer-results/infer_errors.txt >> analysis-reports/combined_report_${timestamp}.md 2>/dev/null || echo "No Infer results found"
 
-      - name: Run SwiftLint
-        continue-on-error: true
-        run: |
-          mkdir -p analysis-reports
-          # Scan all Swift files with detailed output
-          find . -type f -name "*.swift" | \
-          while read -r file; do
-            swiftlint lint \
-              --path "$file" \
-              --reporter detailed \
-              --strict \
-              >> analysis-reports/swiftlint_errors.txt 2>&1 || true
-          done
-
-      - name: Upload SwiftLint results
-        uses: actions/upload-artifact@v3
-        with:
-          name: swiftlint-results
-          path: analysis-reports/swiftlint_errors.txt
-
-  analyze_infer:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential infer
-
-      - name: Run Infer
-        continue-on-error: true
-        run: |
-          mkdir -p analysis-reports
-          infer capture -- make
-          infer analyze \
-            --keep-going \
-            --jobs 4 \
-            > analysis-reports/infer_errors.txt 2>&1 || true
-
-      - name: Upload Infer results
-        uses: actions/upload-artifact@v3
-        with:
-          name: infer-results
-          path: analysis-reports/infer_errors.txt
-
-  combine_and_report:
-    runs-on: ubuntu-22.04
-    needs: [analyze_cpp, analyze_swift, analyze_infer]
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref || github.ref }}
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: artifacts
-
-      - name: Combine and Process Results
-        run: |
-          mkdir -p analysis-reports
-          timestamp=$(date +%Y%m%d-%H%M%S)
-          
-          # Combine all reports with headers
-          echo "# Code Analysis Report - $timestamp" > analysis-reports/combined_report_${timestamp}.md
-          echo "## Cppcheck Results" >> analysis-reports/combined_report_${timestamp}.md
-          cat artifacts/cppcheck-results/cppcheck_errors.txt >> analysis-reports/combined_report_${timestamp}.md 2>/dev/null || echo "No Cppcheck results found"
-          
-          echo "## SwiftLint Results" >> analysis-reports/combined_report_${timestamp}.md
-          cat artifacts/swiftlint-results/swiftlint_errors.txt >> analysis-reports/combined_report_${timestamp}.md 2>/dev/null || echo "No SwiftLint results found"
-          
-          echo "## Infer Results" >> analysis-reports/combined_report_${timestamp}.md
-          cat artifacts/infer-results/infer_errors.txt >> analysis-reports/combined_report_${timestamp}.md 2>/dev/null || echo "No Infer results found"
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Add code analysis report for ${{ github.sha }}"
-          branch: "analysis-report/${{ github.run_id }}"
-          delete-branch: true
-          title: "Code Analysis Report - ${{ github.sha }}"
-          body: |
-            Automated code analysis report generated on ${{ github.event_name }}.
-            Commit: ${{ github.sha }}
-            Contains results from Cppcheck, SwiftLint, and Infer.
-            See attached report for details.
-          labels: |
-            automated
-            code-quality
-          path: analysis-reports/combined_report_${timestamp}.md
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Add code analysis report for ${{ github.sha }}"
+        branch: "analysis-report/${{ github.run_id }}"
+        delete-branch: true
+        title: "Code Analysis Report - ${{ github.sha }}"
+        body: |
+          Automated code analysis report generated on ${{ github.event_name }}.
+          Commit: ${{ github.sha }}
+          Contains results from Cppcheck, SwiftLint, and Infer.
+          See attached report for details.
+        labels: |
+          automated
+          code-quality
+        path: analysis-reports/combined_report_${timestamp}.md
