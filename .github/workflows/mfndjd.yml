@@ -81,8 +81,7 @@ jobs:
       - name: Run Infer
         continue-on-error: true
         run: |
-          # Remove illegal option -o pipefail from the make command
-          infer capture -- make
+          infer run --keep-going -- make
           infer analyze \
             --keep-going \
             --jobs 4 \
