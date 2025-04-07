@@ -2,13 +2,18 @@
 //
 // Copyright (C) 2025 BDG
 //
-// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted under the terms of the Proprietary Software License.
+// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted
+// under the terms of the Proprietary Software License.
 
 import Foundation
 import Nuke
 import UIKit
 
+// MARK: - AppTableViewCell
+
 class AppTableViewCell: UITableViewCell {
+    // MARK: - Properties
+    
     public var appDownload: AppDownload?
     private var progressObserver: NSObjectProtocol?
 
@@ -16,56 +21,15 @@ class AppTableViewCell: UITableViewCell {
     private var getButtonWidthConstraint: NSLayoutConstraint?
     private var buttonImage: UIImage?
 
-    private let iconImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 12
-        imageView.layer.cornerCurve = .continuous
-        imageView.layer.borderWidth = 1
-        imageView.layer.borderColor = UIColor.lightGray.withAlphaComponent(0.3).cgColor
-        return imageView
-    }()
-
-    private let nameLabel: UILabel = {
-        let label = UILabel()
-        label.font = .boldSystemFont(ofSize: 16)
-        label.numberOfLines = 1
-        return label
-    }()
-
-    private let versionLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 13, weight: .regular)
-        label.textColor = .gray
-        label.numberOfLines = 2
-        return label
-    }()
-
-    private let descriptionLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 13, weight: .regular)
-        label.textColor = .gray
-        label.numberOfLines = 20
-        return label
-    }()
-
-    private let screenshotsScrollView: UIScrollView = {
-        let scrollView = UIScrollView()
-        scrollView.contentInset = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 15)
-        scrollView.showsHorizontalScrollIndicator = false
-        return scrollView
-    }()
-
-    private let screenshotsStackView: UIStackView = {
-        let stackView = UIStackView()
-        stackView.axis = .horizontal
-        stackView.spacing = 10
-        stackView.alignment = .center
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        return stackView
-    }()
-
+    // MARK: - UI Components
+    
+    private let iconImageView = AppCellFactory.createIconImageView()
+    private let nameLabel = AppCellFactory.createNameLabel()
+    private let versionLabel = AppCellFactory.createVersionLabel()
+    private let descriptionLabel = AppCellFactory.createDescriptionLabel()
+    private let screenshotsScrollView = AppCellFactory.createScreenshotsScrollView()
+    private let screenshotsStackView = AppCellFactory.createScreenshotsStackView()
+    
     let getButton: UIButton = {
         let button = UIButton(type: .system)
         button.layer.cornerRadius = 15
@@ -74,6 +38,8 @@ class AppTableViewCell: UITableViewCell {
         return button
     }()
 
+    // MARK: - Initialization
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupViews()
@@ -86,11 +52,21 @@ class AppTableViewCell: UITableViewCell {
     required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    deinit {
+        if let observer = progressObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
 
+    // MARK: - View Setup
+    
     private func setupViews() {
         let labelsStackView = UIStackView(arrangedSubviews: [nameLabel, versionLabel])
         labelsStackView.axis = .vertical
         labelsStackView.spacing = 1
+        
+        // Add subviews
         contentView.addSubview(iconImageView)
         contentView.addSubview(labelsStackView)
         contentView.addSubview(screenshotsScrollView)
@@ -98,14 +74,15 @@ class AppTableViewCell: UITableViewCell {
         contentView.addSubview(getButton)
         contentView.addSubview(descriptionLabel)
 
-        iconImageView.translatesAutoresizingMaskIntoConstraints = false
+        // Configure translatesAutoresizingMaskIntoConstraints
         labelsStackView.translatesAutoresizingMaskIntoConstraints = false
-        screenshotsScrollView.translatesAutoresizingMaskIntoConstraints = false
-        screenshotsStackView.translatesAutoresizingMaskIntoConstraints = false
-        getButton.translatesAutoresizingMaskIntoConstraints = false
-        descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
-
+        
+        // Setup constraints
         getButtonWidthConstraint = getButton.widthAnchor.constraint(equalToConstant: 70)
+        setupConstraints(labelsStackView: labelsStackView)
+    }
+    
+    private func setupConstraints(labelsStackView: UIStackView) {
         NSLayoutConstraint.activate([
             iconImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 15),
             iconImageView.widthAnchor.constraint(equalToConstant: 52),
@@ -131,10 +108,12 @@ class AppTableViewCell: UITableViewCell {
             screenshotsStackView.topAnchor.constraint(equalTo: screenshotsScrollView.topAnchor),
             screenshotsStackView.bottomAnchor.constraint(equalTo: screenshotsScrollView.bottomAnchor),
             screenshotsStackView.trailingAnchor.constraint(equalTo: screenshotsScrollView.trailingAnchor),
-            screenshotsStackView.heightAnchor.constraint(equalTo: screenshotsScrollView.heightAnchor),
+            screenshotsStackView.heightAnchor.constraint(equalTo: screenshotsScrollView.heightAnchor)
         ])
     }
 
+    // MARK: - Button Configuration
+    
     private func configureGetButtonArrow() {
         let symbolConfig = UIImage.SymbolConfiguration(pointSize: 13, weight: .bold)
         buttonImage = UIImage(systemName: "arrow.down", withConfiguration: symbolConfig)
@@ -162,7 +141,11 @@ class AppTableViewCell: UITableViewCell {
     }
 
     private func addObservers() {
-        progressObserver = NotificationCenter.default.addObserver(forName: .downloadProgressUpdated, object: nil, queue: .main) { [weak self] notification in
+        progressObserver = NotificationCenter.default.addObserver(
+            forName: .downloadProgressUpdated, 
+            object: nil, 
+            queue: .main
+        ) { [weak self] notification in
             guard let self = self,
                   let userInfo = notification.userInfo,
                   let uuid = userInfo["uuid"] as? String,
@@ -170,6 +153,8 @@ class AppTableViewCell: UITableViewCell {
         }
     }
 
+    // MARK: - Lifecycle Methods
+    
     override func layoutSubviews() {
         super.layoutSubviews()
         updateProgressLayerPath()
@@ -181,91 +166,126 @@ class AppTableViewCell: UITableViewCell {
         updateProgressLayerPath()
     }
 
-    deinit {
-        if let observer = progressObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
-    }
-
+    // MARK: - Cell Configuration
+    
     func configure(with app: StoreAppsData) {
+        // Configure basic app info
+        configureAppName(app)
+        configureVersionText(app)
+        configureAppIcon(app)
+        
+        // Remove any existing screenshots
+        screenshotsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        // Setup screenshot layout or description based on preferences
+        setupAppContentLayout(app)
+        
+        // Update download state
+        updateDownloadState(uuid: app.bundleIdentifier)
+    }
+    
+    private func configureAppName(_ app: StoreAppsData) {
         var appname = app.name
         if app.bundleIdentifier.hasSuffix("Beta") {
             appname += " (Beta)"
         }
-
         nameLabel.text = appname
-
+    }
+    
+    private func configureVersionText(_ app: StoreAppsData) {
         let appVersion = (app.versions?.first?.version ?? app.version) ?? "1.0"
         var displayText = appVersion
+        var descText = ""
 
+        // Add date if available
+        displayText = addDateToDisplayText(displayText, app: app)
+        
+        // Add subtitle/description based on preferences
+        (displayText, descText) = addAppDescriptionInfo(displayText, app: app)
+        
+        descriptionLabel.text = descText
+        versionLabel.text = displayText
+    }
+    
+    private func addDateToDisplayText(_ displayText: String, app: StoreAppsData) -> String {
+        var result = displayText
         let appDate = (app.versions?.first?.date ?? app.versionDate) ?? ""
-        if appDate != "" {
+        
+        if !appDate.isEmpty {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
 
             if let date = dateFormatter.date(from: appDate) {
                 let formattedDate = date.formatted(date: .numeric, time: .omitted)
-                displayText += " • " + formattedDate
+                result += " • " + formattedDate
             } else {
                 dateFormatter.dateFormat = "yyyy-MM-dd"
                 if let date = dateFormatter.date(from: appDate) {
                     let formattedDate = date.formatted(date: .numeric, time: .omitted)
-                    displayText += " • " + formattedDate
+                    result += " • " + formattedDate
                 }
             }
         }
+        
+        return result
+    }
+    
+    private func addAppDescriptionInfo(_ displayText: String, app: StoreAppsData) -> (String, String) {
+        var resultDisplay = displayText
         var descText = ""
-
-        if Preferences.appDescriptionAppearence == 0 {
+        
+        switch Preferences.appDescriptionAppearence {
+        case 0:
             let appSubtitle = app.subtitle ?? String.localized("SOURCES_CELLS_DEFAULT_SUBTITLE")
-            displayText += " • " + appSubtitle
-        } else if Preferences.appDescriptionAppearence == 1 {
+            resultDisplay += " • " + appSubtitle
+            
+        case 1:
             let appSubtitle = app.localizedDescription ?? String.localized("SOURCES_CELLS_DEFAULT_SUBTITLE")
-            displayText += " • " + appSubtitle
-        } else if Preferences.appDescriptionAppearence == 2 {
+            resultDisplay += " • " + appSubtitle
+            
+        case 2:
             let appSubtitle = app.subtitle ?? String.localized("SOURCES_CELLS_DEFAULT_SUBTITLE")
-            displayText += " • " + appSubtitle
-            descText = app.localizedDescription ?? (app.versions?[0].localizedDescription ?? String.localized("SOURCES_CELLS_DEFAULT_DESCRIPTION"))
+            resultDisplay += " • " + appSubtitle
+            descText = app.localizedDescription ?? 
+                      (app.versions?[0].localizedDescription ?? 
+                       String.localized("SOURCES_CELLS_DEFAULT_DESCRIPTION"))
+            
+        default:
+            break
         }
-        descriptionLabel.text = descText
-        versionLabel.text = displayText
+        
+        return (resultDisplay, descText)
+    }
+    
+    private func configureAppIcon(_ app: StoreAppsData) {
         iconImageView.image = UIImage(named: "unknown")
 
         if let iconURL = app.iconURL {
-            loadImage(from: iconURL) { image in
+            loadImage(from: iconURL) { [weak self] image in
                 DispatchQueue.main.async {
-                    self.iconImageView.image = image
+                    self?.iconImageView.image = image
                 }
             }
         }
-
-        screenshotsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
-        if let screenshotUrls = app.screenshotURLs, !screenshotUrls.isEmpty, Preferences.appDescriptionAppearence != 2 {
+    }
+    
+    private func setupAppContentLayout(_ app: StoreAppsData) {
+        if let screenshotUrls = app.screenshotURLs, 
+           !screenshotUrls.isEmpty, 
+           Preferences.appDescriptionAppearence != 2 {
             setupScreenshots(for: screenshotUrls)
         } else if Preferences.appDescriptionAppearence == 2 {
             setupDescription()
         } else {
             iconImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor).isActive = true
         }
-        updateDownloadState(uuid: app.bundleIdentifier)
     }
 
+    // MARK: - Screenshots Setup
+    
     private func setupScreenshots(for urls: [URL]) {
-        let imageViews = urls.map { _ -> UIImageView in
-            let imageView = UIImageView()
-            imageView.contentMode = .scaleAspectFill
-            imageView.clipsToBounds = true
-            imageView.layer.cornerRadius = 15
-            imageView.layer.cornerCurve = .continuous
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            imageView.layer.borderWidth = 1
-            imageView.layer.borderColor = UIColor.lightGray.withAlphaComponent(0.3).cgColor
-            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleScreenshotTap(_:)))
-            imageView.addGestureRecognizer(tapGesture)
-            imageView.isUserInteractionEnabled = true
-            return imageView
-        }
+        let imageViews = createImageViewsForScreenshots(urls)
+        
         screenshotsScrollView.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 10).isActive = true
         screenshotsScrollView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -15).isActive = true
         iconImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 15).isActive = true
@@ -277,6 +297,25 @@ class AppTableViewCell: UITableViewCell {
 
         loadImages(from: urls, into: imageViews)
     }
+    
+    private func createImageViewsForScreenshots(_ urls: [URL]) -> [UIImageView] {
+        return urls.map { _ -> UIImageView in
+            let imageView = UIImageView()
+            imageView.contentMode = .scaleAspectFill
+            imageView.clipsToBounds = true
+            imageView.layer.cornerRadius = 15
+            imageView.layer.cornerCurve = .continuous
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            imageView.layer.borderWidth = 1
+            imageView.layer.borderColor = UIColor.lightGray.withAlphaComponent(0.3).cgColor
+            
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleScreenshotTap(_:)))
+            imageView.addGestureRecognizer(tapGesture)
+            imageView.isUserInteractionEnabled = true
+            
+            return imageView
+        }
+    }
 
     private func setupDescription() {
         iconImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 15).isActive = true
@@ -286,8 +325,7 @@ class AppTableViewCell: UITableViewCell {
 
     @objc private func handleScreenshotTap(_ sender: UITapGestureRecognizer) {
         guard let tappedImageView = sender.view as? UIImageView,
-              let tappedImage = tappedImageView.image
-        else {
+              let tappedImage = tappedImageView.image else {
             return
         }
 
@@ -298,22 +336,23 @@ class AppTableViewCell: UITableViewCell {
         navigationController.modalPresentationStyle = .fullScreen
 
         if let viewController = self.parentViewController {
-            viewController.present(navigationController, animated: true, completion: nil)
+            viewController.present(navigationController, animated: true)
         }
     }
 
+    // MARK: - Image Loading
+    
     private func loadImages(from urls: [URL], into imageViews: [UIImageView]) {
         let dispatchGroup = DispatchGroup()
 
         for (index, url) in urls.enumerated() {
             dispatchGroup.enter()
             loadImage(from: url) { [weak self] image in
-                guard let self = self else {
-                    dispatchGroup.leave()
-                    return
-                }
-                guard let image = image, index < imageViews.count else {
-                    dispatchGroup.leave()
+                defer { dispatchGroup.leave() }
+                
+                guard let self = self,
+                      let image = image, 
+                      index < imageViews.count else {
                     return
                 }
 
@@ -324,8 +363,6 @@ class AppTableViewCell: UITableViewCell {
                     imageView.widthAnchor.constraint(equalToConstant: width).isActive = true
                     Task { imageView.image = await image.byPreparingForDisplay() }
                 }
-
-                dispatchGroup.leave()
             }
         }
     }
@@ -335,37 +372,34 @@ class AppTableViewCell: UITableViewCell {
 
         if let cachedImage = ImagePipeline.shared.cache.cachedImage(for: request)?.image {
             completion(cachedImage)
-        } else {
-            ImagePipeline.shared.loadImage(
-                with: request,
-                queue: .global(),
-                progress: nil
-            ) { result in
-                switch result {
-                    case let .success(imageResponse):
-                        completion(imageResponse.image)
-                    case .failure:
-                        completion(nil)
-                }
+            return
+        }
+        
+        ImagePipeline.shared.loadImage(
+            with: request,
+            queue: .global(),
+            progress: nil
+        ) { result in
+            switch result {
+            case let .success(imageResponse):
+                completion(imageResponse.image)
+            case .failure:
+                completion(nil)
             }
         }
     }
 
+    // MARK: - Download State
+    
     private func updateDownloadState(uuid: String?) {
-        guard let appUUID = uuid else {
-            return
-        }
+        guard let appUUID = uuid else { return }
 
         DownloadTaskManager.shared.restoreTaskState(for: appUUID, cell: self)
 
-        if let task = DownloadTaskManager.shared.task(for: appUUID) {
-            switch task.state {
-                case .inProgress:
-                    DispatchQueue.main.async {
-                        self.startDownload()
-                    }
-                default:
-                    break
+        if let task = DownloadTaskManager.shared.task(for: appUUID),
+           case .inProgress = task.state {
+            DispatchQueue.main.async {
+                self.startDownload()
             }
         }
     }
@@ -378,23 +412,23 @@ class AppTableViewCell: UITableViewCell {
 
     func startDownload() {
         DispatchQueue.main.async {
-            UIView.animate(withDuration: 0.3, animations: {
+            UIView.animate(withDuration: 0.3) {
                 self.getButtonWidthConstraint?.constant = 30
                 self.layoutIfNeeded()
                 self.configureGetButtonSquare()
                 self.updateProgressLayerPath()
-            })
+            }
         }
     }
 
     func stopDownload() {
         DispatchQueue.main.async {
-            UIView.animate(withDuration: 0.3, animations: {
+            UIView.animate(withDuration: 0.3) {
                 self.getButtonWidthConstraint?.constant = 70
                 self.progressLayer.strokeEnd = 0.0
                 self.configureGetButtonArrow()
                 self.layoutIfNeeded()
-            })
+            }
         }
     }
 
@@ -410,9 +444,74 @@ class AppTableViewCell: UITableViewCell {
     }
 }
 
+// MARK: - Factory for UI Elements
+
+fileprivate enum AppCellFactory {
+    static func createIconImageView() -> UIImageView {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.layer.cornerRadius = 12
+        imageView.layer.cornerCurve = .continuous
+        imageView.layer.borderWidth = 1
+        imageView.layer.borderColor = UIColor.lightGray.withAlphaComponent(0.3).cgColor
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
+    }
+    
+    static func createNameLabel() -> UILabel {
+        let label = UILabel()
+        label.font = .boldSystemFont(ofSize: 16)
+        label.numberOfLines = 1
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }
+    
+    static func createVersionLabel() -> UILabel {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 13, weight: .regular)
+        label.textColor = .gray
+        label.numberOfLines = 2
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }
+    
+    static func createDescriptionLabel() -> UILabel {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 13, weight: .regular)
+        label.textColor = .gray
+        label.numberOfLines = 20
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }
+    
+    static func createScreenshotsScrollView() -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.contentInset = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 15)
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        return scrollView
+    }
+    
+    static func createScreenshotsStackView() -> UIStackView {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 10
+        stackView.alignment = .center
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }
+}
+
+// MARK: - SourceAppScreenshotViewController
+
 class SourceAppScreenshotViewController: UIViewController {
+    // MARK: - Properties
+    
     var image: UIImage?
 
+    // MARK: - UI Components
+    
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
@@ -425,22 +524,32 @@ class SourceAppScreenshotViewController: UIViewController {
         return imageView
     }()
 
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        view.backgroundColor = .systemBackground
-
-        view.addSubview(imageView)
-        setupConstraints()
-
-        imageView.image = image
-
-        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: String.localized("DONE"), style: .done, target: self, action: #selector(closeSheet))
+        setupView()
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateImageViewSize()
+    }
+    
+    // MARK: - Setup
+    
+    private func setupView() {
+        view.backgroundColor = .systemBackground
+        view.addSubview(imageView)
+        setupConstraints()
+        imageView.image = image
+        
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: String.localized("DONE"),
+            style: .done,
+            target: self,
+            action: #selector(closeSheet)
+        )
     }
 
     private func setupConstraints() {
@@ -448,28 +557,30 @@ class SourceAppScreenshotViewController: UIViewController {
             imageView.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
             imageView.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
             imageView.widthAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.widthAnchor, multiplier: 0.9),
-            imageView.heightAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.heightAnchor, multiplier: 0.9),
+            imageView.heightAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.heightAnchor, multiplier: 0.9)
         ])
     }
 
     private func updateImageViewSize() {
         guard let image = image else { return }
+        
         let imageSize = image.size
-
         let maxWidth = view.safeAreaLayoutGuide.layoutFrame.width * 0.9
         let maxHeight = view.safeAreaLayoutGuide.layoutFrame.height * 0.9
-
         let aspectRatio = imageSize.width / imageSize.height
+        
         let constrainedWidth = min(imageSize.width, maxWidth)
         let constrainedHeight = min(imageSize.height, maxHeight)
-
+        
         let imageViewWidth = min(constrainedWidth, constrainedHeight * aspectRatio)
         let imageViewHeight = min(constrainedHeight, constrainedWidth / aspectRatio)
-
+        
         imageView.frame.size = CGSize(width: imageViewWidth, height: imageViewHeight)
         imageView.center = view.center
     }
 
+    // MARK: - Actions
+    
     @objc func closeSheet() {
         dismiss(animated: true)
     }
