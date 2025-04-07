@@ -1143,11 +1143,11 @@ bool JReader::decodeDouble(Token &token, JValue &jval) {
     return addError("'" + string(token.pbeg, token.pend) + "' is too large or not a number.", token.pbeg);
 }
 
-bool JReader::decodeString(Token &token, string &strdec) {
-    strdec = "";
+bool JReader::decodeString(Token &token, string &decoded) {
+    decoded = "";
     const char *pcur = token.pbeg + 1;
     const char *pend = token.pend - 1;
-    strdec.reserve(size_t(token.pend - token.pbeg));
+    decoded.reserve(static_cast<size_t>(token.pend - token.pbeg));
     while (pcur != pend) {
         char c = *pcur++;
         if ('\\' == c) {
@@ -1155,28 +1155,28 @@ bool JReader::decodeString(Token &token, string &strdec) {
                 char escape = *pcur++;
                 switch (escape) {
                     case '"':
-                        strdec += '"';
+                        decoded += '"';
                         break;
                     case '\\':
-                        strdec += '\\';
+                        decoded += '\\';
                         break;
                     case 'b':
-                        strdec += '\b';
+                        decoded += '\b';
                         break;
                     case 'f':
-                        strdec += '\f';
+                        decoded += '\f';
                         break;
                     case 'n':
-                        strdec += '\n';
+                        decoded += '\n';
                         break;
                     case 'r':
-                        strdec += '\r';
+                        decoded += '\r';
                         break;
                     case 't':
-                        strdec += '\t';
+                        decoded += '\t';
                         break;
                     case '/':
-                        strdec += '/';
+                        decoded += '/';
                         break;
                     case 'u': { // based on description from http://en.wikipedia.org/wiki/UTF-8
 
@@ -1212,7 +1212,7 @@ bool JReader::decodeString(Token &token, string &strdec) {
                             strUTF8[0] = static_cast<char>(0xF0 | (0x7 & (cp >> 18)));
                         }
 
-                        strdec += strUTF8;
+                        decoded += strUTF8;
                     } break;
                     default:
                         return addError("Bad escape sequence in string", pcur);
@@ -1224,7 +1224,7 @@ bool JReader::decodeString(Token &token, string &strdec) {
         } else if ('"' == c) {
             break;
         } else {
-            strdec += c;
+            decoded += c;
         }
     }
     return true;
@@ -1254,7 +1254,7 @@ void JReader::error(string &strmsg) const {
         }
     }
     char msg[64];
-    sprintf(msg, "Error: Line %d, Column %d, ", row, int(m_pErr - plast) + 1);
+    sprintf(msg, "Error: Line %d, Column %d, ", row, static_cast<int>(m_pErr - plast) + 1);
     strmsg += msg + m_strErr + "\n";
 }
 
@@ -2098,15 +2098,16 @@ bool PReader::readBinaryValue(const char *&pcur, JValue &pv) {
         case BPLIST_REAL: {
             size_t size = 1 << val;
 
-            uint8_t *buf = (uint8_t *)malloc(size);
+            uint8_t *buf = static_cast<uint8_t*>(malloc(size));
             memcpy(buf, pcur, size);
             byteConvert(buf, size);
 
             switch (size) {
                 case sizeof(float):
-                    pv = (double)(*(float *)buf);
+                    pv = static_cast<double>(*reinterpret_cast<float*>(buf));
+                    break; // Added missing break statement to prevent fall-through
                 case sizeof(double):
-                    pv = (*(double *)buf);
+                    pv = *reinterpret_cast<double*>(buf);
                     break;
                 default: {
                     assert(0);
@@ -2121,10 +2122,10 @@ bool PReader::readBinaryValue(const char *&pcur, JValue &pv) {
         case BPLIST_DATE: {
             if (3 == val) {
                 size_t size = 1 << val;
-                uint8_t *buf = (uint8_t *)malloc(size);
+                uint8_t *buf = static_cast<uint8_t*>(malloc(size));
                 memcpy(buf, pcur, size);
                 byteConvert(buf, size);
-                pv.assignDate(((time_t)(*(double *)buf)) + 978278400);
+                pv.assignDate(static_cast<time_t>(*reinterpret_cast<double*>(buf)) + 978278400);
                 free(buf);
             } else {
                 assert(0);

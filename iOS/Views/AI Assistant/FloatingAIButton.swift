@@ -2,18 +2,31 @@
 //
 // Copyright (C) 2025 BDG
 //
-// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted under the terms of the Proprietary Software License.
+// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted
+// under the terms of the Proprietary Software License.
 
 import UIKit
+
+// MARK: - FloatingAIButton
 
 /// Floating button with custom AI assistant functionality
 final class FloatingAIButton: UIView {
     // MARK: - UI Components
 
-    private let button: UIButton = {
+    private let aiButton: UIButton = {
         let btn = UIButton(type: .custom)
         btn.layer.cornerRadius = 30
-        btn.setImage(UIImage(systemName: "bubble.left.and.bubble.right.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)), for: .normal)
+        
+        let symbolConfig = UIImage.SymbolConfiguration(
+            pointSize: 24,
+            weight: .medium
+        )
+        let image = UIImage(
+            systemName: "bubble.left.and.bubble.right.fill",
+            withConfiguration: symbolConfig
+        )
+        
+        btn.setImage(image, for: .normal)
         btn.tintColor = .white
         btn.accessibilityLabel = "AI Assistant"
 
@@ -24,16 +37,20 @@ final class FloatingAIButton: UIView {
 
     private var initialPoint: CGPoint = .zero
     private var lastStoredPosition: CGPoint?
-    private let userDefaultsKey = "AIButtonPosition"
+    private let positionStorageKey = "AIButtonPosition"
+    private let buttonSize: CGFloat = 60
+    private let buttonRadius: CGFloat = 30
+    private let shadowRadius: CGFloat = 6
+    private let defaultMargin: CGFloat = 20
 
     // MARK: - Initialization
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        setupView()
-        setupGradientBackground()
-        loadSavedPosition()
-        startPulseAnimation()
+        configureView()
+        configureGradientBackground()
+        restoreSavedPosition()
+        beginPulseEffect()
     }
 
     @available(*, unavailable)
@@ -41,40 +58,48 @@ final class FloatingAIButton: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - Setup
+    // MARK: - View Configuration
 
-    private func setupView() {
+    private func configureView() {
         // Add and configure the button
-        addSubview(button)
-        button.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(aiButton)
+        aiButton.translatesAutoresizingMaskIntoConstraints = false
+        
         NSLayoutConstraint.activate([
-            button.topAnchor.constraint(equalTo: topAnchor),
-            button.leadingAnchor.constraint(equalTo: leadingAnchor),
-            button.trailingAnchor.constraint(equalTo: trailingAnchor),
-            button.bottomAnchor.constraint(equalTo: bottomAnchor),
+            aiButton.topAnchor.constraint(equalTo: topAnchor),
+            aiButton.leadingAnchor.constraint(equalTo: leadingAnchor),
+            aiButton.trailingAnchor.constraint(equalTo: trailingAnchor),
+            aiButton.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
         // Set frame size
-        frame = CGRect(x: 0, y: 0, width: 60, height: 60)
+        frame = CGRect(x: 0, y: 0, width: buttonSize, height: buttonSize)
 
+        configureShadow()
+        configureGestures()
+    }
+    
+    private func configureShadow() {
         // Add shadow
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.4
         layer.shadowOffset = CGSize(width: 0, height: 4)
-        layer.shadowRadius = 6
-
+        layer.shadowRadius = shadowRadius
+    }
+    
+    private func configureGestures() {
         // Add gestures
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
         addGestureRecognizer(panGesture)
 
         // Add tap target
-        button.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
+        aiButton.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
     }
 
-    private func setupGradientBackground() {
+    private func configureGradientBackground() {
         // Create a gradient background that matches app theme
         let gradient = CAGradientLayer()
-        gradient.frame = CGRect(x: 0, y: 0, width: 60, height: 60)
+        gradient.frame = CGRect(x: 0, y: 0, width: buttonSize, height: buttonSize)
 
         // Use app tint color for gradient
         let tintColor = Preferences.appTintColor.uiColor
@@ -83,11 +108,11 @@ final class FloatingAIButton: UIView {
         gradient.colors = [tintColor.cgColor, lighterTint.cgColor]
         gradient.startPoint = CGPoint(x: 0, y: 0)
         gradient.endPoint = CGPoint(x: 1, y: 1)
-        gradient.cornerRadius = 30
-        button.layer.insertSublayer(gradient, at: 0)
+        gradient.cornerRadius = buttonRadius
+        aiButton.layer.insertSublayer(gradient, at: 0)
     }
 
-    private func startPulseAnimation() {
+    private func beginPulseEffect() {
         // Create a subtle pulse animation
         let pulse = CASpringAnimation(keyPath: "transform.scale")
         pulse.duration = 0.8
@@ -102,48 +127,52 @@ final class FloatingAIButton: UIView {
 
     // MARK: - Position Management
 
-    private func loadSavedPosition() {
-        if let positionData = UserDefaults.standard.data(forKey: userDefaultsKey),
-           let position = try? JSONDecoder().decode(CGPoint.self, from: positionData)
-        {
-            lastStoredPosition = position
-
-            // Apply the saved position if valid
-            if let superview = superview, position.x > 0 && position.y > 0 {
-                center = position
-
-                // Make sure it's within bounds in case of screen size changes
-                let safeArea = superview.safeAreaInsets
-                let minX = 30 + safeArea.left
-                let maxX = superview.bounds.width - 30 - safeArea.right
-                let minY = 30 + safeArea.top
-                let maxY = superview.bounds.height - 30 - safeArea.bottom
-
-                center.x = min(max(center.x, minX), maxX)
-                center.y = min(max(center.y, minY), maxY)
-
-                Debug.shared.log(message: "Restored button position to: \(center)", type: .debug)
-            }
+    private func restoreSavedPosition() {
+        guard let position = retrievePosition(),
+              let superview = superview,
+              position.x > 0,
+              position.y > 0 else {
+            return
         }
+        
+        center = position
+        adjustPositionToSafeBounds(in: superview)
+        
+        Debug.shared.log(message: "Restored button position to: \(center)", type: .debug)
+    }
+    
+    private func adjustPositionToSafeBounds(in view: UIView) {
+        let safeArea = view.safeAreaInsets
+        let minX = defaultMargin + safeArea.left + frame.width / 2
+        let maxX = view.bounds.width - defaultMargin - safeArea.right - frame.width / 2
+        let minY = defaultMargin + safeArea.top + frame.height / 2
+        let maxY = view.bounds.height - defaultMargin - safeArea.bottom - frame.height / 2
+
+        center.x = min(max(center.x, minX), maxX)
+        center.y = min(max(center.y, minY), maxY)
     }
 
-    private func savePosition() {
-        if let positionData = try? JSONEncoder().encode(center) {
-            UserDefaults.standard.set(positionData, forKey: userDefaultsKey)
-            UserDefaults.standard.synchronize() // Ensure the position is saved immediately
-            lastStoredPosition = center
-            Debug.shared.log(message: "Saved button position: \(center)", type: .debug)
+    private func persistPosition() {
+        guard let positionData = try? JSONEncoder().encode(center) else { return }
+        
+        UserDefaults.standard.set(positionData, forKey: positionStorageKey)
+        UserDefaults.standard.synchronize() // Ensure the position is saved immediately
+        lastStoredPosition = center
+        
+        Debug.shared.log(message: "Saved button position: \(center)", type: .debug)
+    }
+
+    private func retrievePosition() -> CGPoint? {
+        if let positionData = UserDefaults.standard.data(forKey: positionStorageKey),
+           let position = try? JSONDecoder().decode(CGPoint.self, from: positionData) {
+            return position
         }
+        return lastStoredPosition
     }
 
     // Make this method public so FloatingButtonManager can access it
     func getSavedPosition() -> CGPoint? {
-        if let positionData = UserDefaults.standard.data(forKey: userDefaultsKey),
-           let position = try? JSONDecoder().decode(CGPoint.self, from: positionData)
-        {
-            return position
-        }
-        return lastStoredPosition
+        return retrievePosition()
     }
 
     // Apply saved position whenever the button is added to a view
@@ -152,52 +181,77 @@ final class FloatingAIButton: UIView {
 
         if superview != nil {
             DispatchQueue.main.async { [weak self] in
-                self?.loadSavedPosition()
+                self?.restoreSavedPosition()
             }
         }
     }
+
+    // MARK: - Gesture Handling
 
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
         guard let superview = superview else { return }
         let translation = gesture.translation(in: superview)
 
         switch gesture.state {
-            case .began:
-                initialPoint = center
-                // Stop pulse animation during drag
-                layer.removeAnimation(forKey: "pulse")
+        case .began:
+            initialPoint = center
+            // Stop pulse animation during drag
+            layer.removeAnimation(forKey: "pulse")
 
-            case .changed:
-                center = CGPoint(x: initialPoint.x + translation.x,
-                                 y: initialPoint.y + translation.y)
-                keepWithinBounds(superview: superview)
+        case .changed:
+            center = CGPoint(
+                x: initialPoint.x + translation.x,
+                y: initialPoint.y + translation.y
+            )
+            keepWithinBounds(superview: superview)
 
-            case .ended, .cancelled:
-                snapToEdge(superview: superview)
-                // Save position after snap
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                    self?.savePosition()
-                }
-                // Restart pulse animation
-                startPulseAnimation()
+        case .ended, .cancelled:
+            snapToEdge(superview: superview)
+            // Save position after snap
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.persistPosition()
+            }
+            // Restart pulse animation
+            beginPulseEffect()
 
-            default:
-                break
+        default:
+            break
         }
     }
 
     private func keepWithinBounds(superview: UIView) {
-        let margin: CGFloat = 20
-        center.x = max(margin + frame.width / 2, min(center.x, superview.bounds.width - margin - frame.width / 2))
-        center.y = max(margin + frame.height / 2, min(center.y, superview.bounds.height - margin - frame.height / 2))
+        let halfWidth = frame.width / 2
+        let halfHeight = frame.height / 2
+        let margin = defaultMargin
+        
+        // Calculate safe boundaries
+        let minX = margin + halfWidth
+        let maxX = superview.bounds.width - margin - halfWidth
+        let minY = margin + halfHeight
+        let maxY = superview.bounds.height - margin - halfHeight
+        
+        // Restrict position to safe boundaries
+        center.x = max(minX, min(center.x, maxX))
+        center.y = max(minY, min(center.y, maxY))
     }
 
     private func snapToEdge(superview: UIView) {
-        let margin: CGFloat = 20
-        let newX = center.x < superview.bounds.width / 2 ? margin + frame.width / 2 : superview.bounds.width - margin - frame.width / 2
+        let margin = defaultMargin
+        let halfWidth = frame.width / 2
+        let screenCenter = superview.bounds.width / 2
+        
+        // Determine which edge to snap to
+        let newX = center.x < screenCenter ? 
+                   margin + halfWidth : 
+                   superview.bounds.width - margin - halfWidth
 
         // Animate to edge with spring effect
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5) {
+        UIView.animate(
+            withDuration: 0.3,
+            delay: 0,
+            usingSpringWithDamping: 0.7,
+            initialSpringVelocity: 0.5
+        ) {
             self.center = CGPoint(x: newX, y: self.center.y)
             self.keepWithinBounds(superview: superview)
         }
@@ -219,25 +273,30 @@ final class FloatingAIButton: UIView {
     /// Update the visual appearance of the button when app theme changes
     func updateAppearance() {
         // Remove existing gradient
-        button.layer.sublayers?.first { $0 is CAGradientLayer }?.removeFromSuperlayer()
+        aiButton.layer.sublayers?.first { $0 is CAGradientLayer }?.removeFromSuperlayer()
 
         // Re-apply gradient with new app theme color
-        setupGradientBackground()
+        configureGradientBackground()
     }
 }
 
-// MARK: - Helper Extensions
+// MARK: - UIColor Extension
 
 extension UIColor {
     /// Adjust color brightness
     func adjustBrightness(by factor: CGFloat) -> UIColor {
-        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
 
         if self.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha) {
-            return UIColor(hue: hue,
-                           saturation: saturation,
-                           brightness: min(brightness + factor, 1.0),
-                           alpha: alpha)
+            return UIColor(
+                hue: hue,
+                saturation: saturation,
+                brightness: min(brightness + factor, 1.0),
+                alpha: alpha
+            )
         }
         return self
     }
@@ -246,7 +305,7 @@ extension UIColor {
 // Note: showAIAssistant notification name is declared elsewhere
 // This section is intentionally empty to avoid duplicate declarations
 
-// MARK: - Codable Extension for CGPoint
+// MARK: - CGPoint+Codable
 
 extension CGPoint: Codable {
     enum CodingKeys: String, CodingKey {

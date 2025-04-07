@@ -2,13 +2,13 @@
 //
 // Copyright (C) 2025 BDG
 //
-// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted under the terms of the Proprietary Software License.
+// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted
+// under the terms of the Proprietary Software License.
 
 import UIKit
 
 // MARK: - AI Learning Extension
 extension ChatViewController {
-    
     /// Record an AI interaction for learning
     func recordAIInteraction(userMessage: String, aiResponse: String, messageId: String) {
         // Extract intent and confidence
@@ -18,7 +18,7 @@ extension ChatViewController {
         // Record the interaction
         AILearningManager.shared.recordInteraction(
             userMessage: userMessage,
-            aiResponse: aiResponse, 
+            aiResponse: aiResponse,
             intent: intent,
             confidence: confidence
         )
@@ -56,7 +56,10 @@ extension ChatViewController {
         guard AILearningManager.shared.isLearningEnabled else { return }
         
         // Create feedback view
-        let feedbackView = AIFeedbackView(frame: CGRect(x: 0, y: 0, width: self.view.bounds.width - 60, height: 240))
+        let frameWidth = self.view.bounds.width - 60
+        let feedbackView = AIFeedbackView(
+            frame: CGRect(x: 0, y: 0, width: frameWidth, height: 240)
+        )
         feedbackView.translatesAutoresizingMaskIntoConstraints = false
         feedbackView.alpha = 0
         
@@ -111,14 +114,24 @@ extension ChatViewController {
             toast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
         ])
         
-        UIView.animate(withDuration: 0.3, animations: {
-            toast.alpha = 1
-        }, completion: { _ in
-            UIView.animate(withDuration: 0.3, delay: 2, options: [], animations: {
-                toast.alpha = 0
-            }, completion: { _ in
-                toast.removeFromSuperview()
-            })
-        })
+        UIView.animate(
+            withDuration: 0.3,
+            animations: {
+                toast.alpha = 1
+            },
+            completion: { _ in
+                UIView.animate(
+                    withDuration: 0.3,
+                    delay: 2,
+                    options: [],
+                    animations: {
+                        toast.alpha = 0
+                    },
+                    completion: { _ in
+                        toast.removeFromSuperview()
+                    }
+                )
+            }
+        )
     }
 }
