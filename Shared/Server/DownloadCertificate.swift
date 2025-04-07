@@ -2,7 +2,8 @@
 //
 // Copyright (C) 2025 BDG
 //
-// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted under the terms of the Proprietary Software License.
+// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted
+// under the terms of the Proprietary Software License.
 
 import Foundation
 
@@ -24,7 +25,10 @@ func getCertificates(completion: (() -> Void)? = nil) {
             try writeToFile(content: "default.backdoor.local", filename: "commonName.txt")
             Debug.shared.log(message: "Created default certificate files as fallback", type: .warning)
         } catch {
-            Debug.shared.log(message: "Error creating default certificate files: \(error.localizedDescription)", type: .error)
+            Debug.shared.log(
+                message: "Error creating default certificate files: \(error.localizedDescription)",
+                type: .error
+            )
         }
     }
 
@@ -39,22 +43,28 @@ func getCertificates(completion: (() -> Void)? = nil) {
         }
 
         switch result {
-            case let .success((data, _)):
-                switch sourceGET.parseCert(data: data) {
-                    case let .success(serverPack):
-                        do {
-                            try writeToFile(content: serverPack.key, filename: "server.pem")
-                            try writeToFile(content: serverPack.cert, filename: "server.crt")
-                            try writeToFile(content: serverPack.info.domains.commonName, filename: "commonName.txt")
-                            Debug.shared.log(message: "Successfully downloaded and saved certificates", type: .success)
-                        } catch {
-                            Debug.shared.log(message: "Error writing certificate files: \(error.localizedDescription)", type: .error)
-                        }
-                    case let .failure(error):
-                        Debug.shared.log(message: "Error parsing certificate: \(error.localizedDescription)", type: .error)
+        case let .success((data, _)):
+            switch sourceGET.parseCert(data: data) {
+            case let .success(serverPack):
+                do {
+                    try writeToFile(content: serverPack.key, filename: "server.pem")
+                    try writeToFile(content: serverPack.cert, filename: "server.crt")
+                    try writeToFile(content: serverPack.info.domains.commonName, filename: "commonName.txt")
+                    Debug.shared.log(message: "Successfully downloaded and saved certificates", type: .success)
+                } catch {
+                    Debug.shared.log(
+                        message: "Error writing certificate files: \(error.localizedDescription)",
+                        type: .error
+                    )
                 }
             case let .failure(error):
-                Debug.shared.log(message: "Error fetching certificates from \(uri): \(error.localizedDescription)", type: .error)
+                Debug.shared.log(message: "Error parsing certificate: \(error.localizedDescription)", type: .error)
+            }
+        case let .failure(error):
+            Debug.shared.log(
+                message: "Error fetching certificates from \(uri): \(error.localizedDescription)",
+                type: .error
+            )
         }
     }
 }
