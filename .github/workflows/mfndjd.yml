@@ -54,7 +54,7 @@ jobs:
           find . -type f -name "*.swift" | \
           while read -r file; do
             swiftlint lint \
-              --path "$file" \
+              "$file" \
               --reporter detailed \
               --strict \
               >> swiftlint_errors.txt 2>&1 || true
@@ -81,6 +81,7 @@ jobs:
       - name: Run Infer
         continue-on-error: true
         run: |
+          # Remove illegal option -o pipefail from the make command
           infer capture -- make
           infer analyze \
             --keep-going \
