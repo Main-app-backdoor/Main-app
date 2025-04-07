@@ -2,10 +2,13 @@
 //
 // Copyright (C) 2025 BDG
 //
-// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted under the terms of the Proprietary Software License.
+// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted
+// under the terms of the Proprietary Software License.
 
 import SwiftUI
 import UIKit
+
+// MARK: - Validation Status Enum
 
 enum JSONValidationStatus {
     case notStarted
@@ -13,7 +16,11 @@ enum JSONValidationStatus {
     case validJSON
 }
 
+// MARK: - RepoViewController
+
 struct RepoViewController: View {
+    // MARK: - Properties
+    
     @Environment(\.presentationMode) var presentationMode
     @State private var repoName: String = ""
     @State private var validationStatus: JSONValidationStatus = .notStarted
@@ -22,54 +29,66 @@ struct RepoViewController: View {
     @State private var isSyncing: Bool = false
     @State var sources: [Source]?
 
+    // MARK: - Computed Properties
+    
     private var footerText: String {
         switch validationStatus {
-            case .notStarted:
-                return String.localized("SOURCES_VIEW_ADD_SOURCES_FOOTER_NOTSTARTED")
-            case .notValidJSON:
-                return String.localized("SOURCES_VIEW_ADD_SOURCES_FOOTER_NOTVALIDJSON")
-            case .validJSON:
-                return String.localized("SOURCES_VIEW_ADD_SOURCES_FOOTER_VALID")
+        case .notStarted:
+            return String.localized("SOURCES_VIEW_ADD_SOURCES_FOOTER_NOTSTARTED")
+        case .notValidJSON:
+            return String.localized("SOURCES_VIEW_ADD_SOURCES_FOOTER_NOTVALIDJSON")
+        case .validJSON:
+            return String.localized("SOURCES_VIEW_ADD_SOURCES_FOOTER_VALID")
         }
     }
 
     private var footerTextColor: Color {
         switch validationStatus {
-            case .notStarted:
-                return .gray
-            case .notValidJSON:
-                return .red
-            case .validJSON:
-                return .green
+        case .notStarted:
+            return .gray
+        case .notValidJSON:
+            return .red
+        case .validJSON:
+            return .green
         }
     }
 
+    // MARK: - View Body
+    
     var body: some View {
         NavigationView {
             List {
                 Section(footer: Text(footerText).foregroundColor(footerTextColor)) {
-                    TextField(String.localized("SOURCES_VIEW_ADD_SOURCES_ALERT_DESCRIPTION"), text: $repoName, onCommit: validateJSON)
-                        .onChange(of: repoName) { _ in
-                            debounceRequest()
-                        }
+                    TextField(
+                        String.localized("SOURCES_VIEW_ADD_SOURCES_ALERT_DESCRIPTION"),
+                        text: $repoName,
+                        onCommit: validateJSON
+                    )
+                    .onChange(of: repoName) { _ in
+                        debounceRequest()
+                    }
                 }
 
                 Section {
-                    Button(action: {
+                    Button {
                         let pasteboard = UIPasteboard.general
                         if let clipboardText = pasteboard.string {
                             Debug.shared.log(message: "Pasted from clipboard")
                             self.decodeRepositories(text: clipboardText)
                         }
-                    }) {
+                    } label: {
                         Text(String.localized("SOURCES_VIEW_ADD_SOURCES_ALERT_BUTTON_IMPORT_REPO"))
                     }
 
-                    Button(action: {
-                        Debug.shared.showSuccessAlert(with: String.localized("SOURCES_VIEW_ADD_SOURCES_ALERT_BUTTON_EXPORT_REPO_ACTION_SUCCESS"), subtitle: "")
-                        UIPasteboard.general.string = self.sources?.map { $0.sourceURL!.absoluteString }.joined(separator: "\n")
+                    Button {
+                        Debug.shared.showSuccessAlert(
+                            with: String.localized("SOURCES_VIEW_ADD_SOURCES_ALERT_BUTTON_EXPORT_REPO_ACTION_SUCCESS"),
+                            subtitle: ""
+                        )
+                        let repoURLs = self.sources?.map { $0.sourceURL!.absoluteString }.joined(separator: "\n")
+                        UIPasteboard.general.string = repoURLs
                         presentationMode.wrappedValue.dismiss()
-                    }) {
+                    } label: {
                         Text(String.localized("SOURCES_VIEW_ADD_SOURCES_ALERT_BUTTON_EXPORT_REPO"))
                     }
                 } footer: {
@@ -103,7 +122,10 @@ struct RepoViewController: View {
                                 self.isSyncing = false
 
                                 if let error = error {
-                                    Debug.shared.log(message: "SourcesViewController.sourcesAddButtonTapped: \(error)", type: .critical)
+                                    Debug.shared.log(
+                                        message: "SourcesViewController.sourcesAddButtonTapped: \(error)",
+                                        type: .critical
+                                    )
                                 } else {
                                     NotificationCenter.default.post(name: Notification.Name("sfetch"), object: nil)
                                     self.presentationMode.wrappedValue.dismiss()
@@ -116,6 +138,8 @@ struct RepoViewController: View {
         }
     }
 }
+
+// MARK: - Validation Methods
 
 extension RepoViewController {
     private func debounceRequest() {
@@ -144,8 +168,9 @@ extension RepoViewController {
             if let data = data {
                 do {
                     if let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                       let identifier = jsonObject["identifier"] as? String, !identifier.isEmpty
-                    {
+                       let identifier = jsonObject["identifier"] as? String,
+                       !identifier.isEmpty {
+                        
                         DispatchQueue.main.async {
                             self.validationStatus = .validJSON
                         }
@@ -172,6 +197,8 @@ extension RepoViewController {
         task.resume()
     }
 }
+
+// MARK: - Repository Decoding
 
 extension RepoViewController {
     func decodeRepositories(text: String) {
@@ -209,20 +236,22 @@ extension RepoViewController {
 
         DispatchQueue(label: "import").async {
             var success = 0
-            for str in repoLinks {
-                if str.starts(with: "http") {
-                    let sem = DispatchSemaphore(value: 0)
-                    CoreDataManager.shared.getSourceData(urlString: str) { error in
-                        if let error = error {
-                            Debug.shared.log(message: "RepoImportVC.sourcesAddButtonTapped: \(error)")
-                        } else {
-                            success += 1
-                        }
-                        sem.signal()
+            // Filter for http links first, then process them
+            let httpLinks = repoLinks.filter { $0.starts(with: "http") }
+            
+            for str in httpLinks {
+                let sem = DispatchSemaphore(value: 0)
+                CoreDataManager.shared.getSourceData(urlString: str) { error in
+                    if let error = error {
+                        Debug.shared.log(message: "RepoImportVC.sourcesAddButtonTapped: \(error)")
+                    } else {
+                        success += 1
                     }
-                    sem.wait()
+                    sem.signal()
                 }
+                sem.wait()
             }
+            
             DispatchQueue.main.async {
                 Debug.shared.log(message: "Successfully imported \(success) repos", type: .success)
                 presentationMode.wrappedValue.dismiss()
@@ -232,16 +261,12 @@ extension RepoViewController {
     }
 
     private func isValidBase64String(_ string: String) -> Bool {
-        if let _ = Data(base64Encoded: string) {
-            return true
-        }
-        return false
+        return Data(base64Encoded: string) != nil
     }
 
     private func decodeBase64String(_ base64String: String) -> String? {
         guard let data = Data(base64Encoded: base64String),
-              let decodedString = String(data: data, encoding: .utf8)
-        else {
+              let decodedString = String(data: data, encoding: .utf8) else {
             return nil
         }
         return decodedString

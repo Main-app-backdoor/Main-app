@@ -2,12 +2,20 @@
 //
 // Copyright (C) 2025 BDG
 //
-// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted under the terms of the Proprietary Software License.
+// Backdoor App Signer is proprietary software. You may not use, modify, or distribute it except as expressly permitted
+// under the terms of the Proprietary Software License.
 
 import Foundation
 import UIKit
 
-class SearchResultsTableViewController: UIViewController, UISearchResultsUpdating, UITableViewDataSource, UITableViewDelegate {
+// MARK: - SearchResultsTableViewController
+
+class SearchResultsTableViewController: UIViewController,
+                                        UISearchResultsUpdating,
+                                        UITableViewDataSource,
+                                        UITableViewDelegate {
+    // MARK: - Properties
+    
     var tableView: UITableView!
     var sources: [Source] = []
     var fetchedSources: [URL: SourcesData] = [:]
@@ -16,42 +24,70 @@ class SearchResultsTableViewController: UIViewController, UISearchResultsUpdatin
     private var dataFetched = false
     private var activityIndicator: UIActivityIndicatorView!
 
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.tableView = UITableView(frame: .zero, style: .insetGrouped)
-        self.tableView.backgroundColor = .background
-        self.tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
-        self.view.addSubview(tableView)
-        self.tableView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
-        self.tableView.dataSource = self
-        self.tableView.delegate = self
-
-        self.activityIndicator = UIActivityIndicatorView(style: .medium)
-        self.activityIndicator.center = CGPoint(x: view.center.x, y: view.center.y)
-        self.activityIndicator.hidesWhenStopped = true
-        self.activityIndicator.startAnimating()
-        self.view.addSubview(activityIndicator)
+        setupTableView()
+        setupActivityIndicator()
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         fetchAppsForSources()
     }
+    
+    // MARK: - UI Setup
+    
+    private func setupTableView() {
+        tableView = UITableView(frame: .zero, style: .insetGrouped)
+        tableView.backgroundColor = .background
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
+        view.addSubview(tableView)
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+        
+        tableView.dataSource = self
+        tableView.delegate = self
+    }
+    
+    private func setupActivityIndicator() {
+        activityIndicator = UIActivityIndicatorView(style: .medium)
+        activityIndicator.center = CGPoint(x: view.center.x, y: view.center.y)
+        activityIndicator.hidesWhenStopped = true
+        activityIndicator.startAnimating()
+        view.addSubview(activityIndicator)
+    }
 
-    func numberOfSections(in _: UITableView) -> Int { return filteredSources.keys.count }
-    func tableView(_: UITableView, heightForHeaderInSection _: Int) -> CGFloat { return 40 }
-
+    // MARK: - UITableViewDataSource
+    
+    func numberOfSections(in _: UITableView) -> Int { 
+        return filteredSources.keys.count 
+    }
+    
     func tableView(_: UITableView, numberOfRowsInSection section: Int) -> Int {
         let source = Array(filteredSources.keys)[section]
         return filteredSources[source]?.count ?? 0
     }
-
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: "Cell")
+        configureCell(cell, at: indexPath, in: tableView)
+        return cell
+    }
+    
+    // MARK: - UITableViewDelegate
+    
+    func tableView(_: UITableView, heightForHeaderInSection _: Int) -> CGFloat { 
+        return 40 
+    }
+    
     func tableView(_: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let source = Array(filteredSources.keys)[section]
         let header = SearchAppSectionHeader(title: source.name ?? "Unknown", icon: UIImage(named: "unknown"))
@@ -59,40 +95,45 @@ class SearchResultsTableViewController: UIViewController, UISearchResultsUpdatin
         loadAndSetImage(from: iconURL, for: header)
         return header
     }
-
-    private func loadAndSetImage(from url: URL?, for header: SearchAppSectionHeader) {
-        guard let url = url else {
-            header.setIcon(with: UIImage(named: "unknown"))
-            return
-        }
-        SectionIcons.loadImageFromURL(from: url) { image in
-            header.setIcon(with: image ?? UIImage(named: "unknown"))
-        }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        presentAppDetail(for: indexPath)
+        tableView.deselectRow(at: indexPath, animated: true)
     }
-
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: "Cell")
-
+    
+    // MARK: - Cell Configuration
+    
+    private func configureCell(_ cell: UITableViewCell, at indexPath: IndexPath, in tableView: UITableView) {
         let source = Array(filteredSources.keys)[indexPath.section]
         let app = filteredSources[source]?[indexPath.row]
 
+        // Configure app name
         var appname = app?.name ?? String.localized("UNKNOWN")
-
-        if app!.bundleIdentifier.hasSuffix("Beta") {
+        if app?.bundleIdentifier.hasSuffix("Beta") == true {
             appname += " (Beta)"
         }
-
         cell.textLabel?.text = appname
 
+        // Configure subtitle
         let appVersion = (app?.versions?.first?.version ?? app?.version) ?? "1.0"
-        let appSubtitle = app?.subtitle ?? (app?.localizedDescription ?? String.localized("SOURCES_CELLS_DEFAULT_SUBTITLE"))
+        let appSubtitle = app?.subtitle ?? 
+                         (app?.localizedDescription ?? String.localized("SOURCES_CELLS_DEFAULT_SUBTITLE"))
         let displayText = appVersion + " • " + appSubtitle
 
         cell.detailTextLabel?.text = displayText
         cell.detailTextLabel?.textColor = .secondaryLabel
-
         cell.accessoryType = .disclosureIndicator
 
+        // Configure image
+        configureImageView(for: cell, with: app, at: indexPath, in: tableView)
+    }
+    
+    private func configureImageView(
+        for cell: UITableViewCell,
+        with app: StoreAppsData?,
+        at indexPath: IndexPath,
+        in tableView: UITableView
+    ) {
         let placeholderImage = UIImage(named: "unknown")
         let imageSize = CGSize(width: 30, height: 30)
 
@@ -119,41 +160,55 @@ class SearchResultsTableViewController: UIViewController, UISearchResultsUpdatin
                 }
             }
         }
-
-        return cell
     }
-
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    
+    // MARK: - App Detail Presentation
+    
+    private func presentAppDetail(for indexPath: IndexPath) {
         let source = Array(filteredSources.keys)[indexPath.section]
         let app = filteredSources[source]?[indexPath.row]
 
-        if let url = sourceURLMapping[source] {
-            let savc = SourceAppViewController()
-            savc.name = source.name
-            savc.uri = [url]
+        guard let url = sourceURLMapping[source] else { return }
+        
+        let savc = SourceAppViewController()
+        savc.name = source.name
+        savc.uri = [url]
 
-            savc.highlightAppName = app?.name
-            savc.highlightBundleID = app?.bundleIdentifier
-            savc.highlightVersion = app?.version ?? app?.versions?[0].version
-            savc.highlightDeveloperName = app?.developerName
-            savc.highlightDescription = app?.localizedDescription
+        savc.highlightAppName = app?.name
+        savc.highlightBundleID = app?.bundleIdentifier
+        savc.highlightVersion = app?.version ?? app?.versions?[0].version
+        savc.highlightDeveloperName = app?.developerName
+        savc.highlightDescription = app?.localizedDescription
 
-            let navigationController = UINavigationController(rootViewController: savc)
+        let navigationController = UINavigationController(rootViewController: savc)
 
-            if let presentationController = navigationController.presentationController as? UISheetPresentationController {
-                presentationController.detents = [.medium(), .large()]
-            }
-
-            self.present(navigationController, animated: true, completion: nil)
+        if let presentationController = navigationController.presentationController as? UISheetPresentationController {
+            presentationController.detents = [.medium(), .large()]
         }
 
-        tableView.deselectRow(at: indexPath, animated: true)
+        present(navigationController, animated: true)
     }
 
+    // MARK: - Header Setup
+    
+    private func loadAndSetImage(from url: URL?, for header: SearchAppSectionHeader) {
+        guard let url = url else {
+            header.setIcon(with: UIImage(named: "unknown"))
+            return
+        }
+        SectionIcons.loadImageFromURL(from: url) { image in
+            header.setIcon(with: image ?? UIImage(named: "unknown"))
+        }
+    }
+
+    // MARK: - UISearchResultsUpdating
+    
     func updateSearchResults(for searchController: UISearchController) {
         let searchText = searchController.searchBar.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        if !dataFetched { fetchAppsForSources() }
+        if !dataFetched { 
+            fetchAppsForSources() 
+        }
 
         filteredSources.removeAll()
 
@@ -174,6 +229,8 @@ class SearchResultsTableViewController: UIViewController, UISearchResultsUpdatin
         tableView.reloadData()
     }
 
+    // MARK: - Data Fetching
+    
     private func fetchAppsForSources() {
         let dispatchGroup = DispatchGroup()
         var allSources: [URL: SourcesData] = [:]
@@ -186,16 +243,16 @@ class SearchResultsTableViewController: UIViewController, UISearchResultsUpdatin
             DispatchQueue.global(qos: .background).async {
                 SourceGET().downloadURL(from: url) { result in
                     switch result {
-                        case let .success((data, _)):
-                            switch SourceGET().parse(data: data) {
-                                case let .success(sourceData):
-                                    allSources[url] = sourceData
-                                    self.sourceURLMapping[sourceData] = url
-                                case let .failure(error):
-                                    Debug.shared.log(message: "Error parsing data: \(error)")
-                            }
+                    case let .success((data, _)):
+                        switch SourceGET().parse(data: data) {
+                        case let .success(sourceData):
+                            allSources[url] = sourceData
+                            self.sourceURLMapping[sourceData] = url
                         case let .failure(error):
-                            Debug.shared.log(message: "Error downloading data: \(error)")
+                            Debug.shared.log(message: "Error parsing data: \(error)")
+                        }
+                    case let .failure(error):
+                        Debug.shared.log(message: "Error downloading data: \(error)")
                     }
                     dispatchGroup.leave()
                 }
@@ -204,10 +261,17 @@ class SearchResultsTableViewController: UIViewController, UISearchResultsUpdatin
 
         dispatchGroup.notify(queue: .main) {
             self.fetchedSources = allSources
-            UIView.transition(with: self.tableView, duration: 0.3, options: .transitionCrossDissolve, animations: {
-                self.tableView.reloadData()
-                self.activityIndicator.stopAnimating()
-            }, completion: nil)
+            self.dataFetched = true
+            
+            UIView.transition(
+                with: self.tableView,
+                duration: 0.3,
+                options: .transitionCrossDissolve,
+                animations: {
+                    self.tableView.reloadData()
+                    self.activityIndicator.stopAnimating()
+                }
+            )
         }
     }
 }
