@@ -14,7 +14,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y cppcheck
       - name: Run Cppcheck
         run: |
-          find shared/ IOS/ -name "*.cpp" -o -name "*.cxx" -o -name "*.cc" | xargs cppcheck --enable=all --inconclusive --quiet --std=c++11 --language=c++ --force
+          find Shared/ iOS/ -name "*.cpp" -o -name "*.cxx" -o -name "*.cc" | xargs cppcheck --enable=all --inconclusive --quiet --std=c++11 --language=c++ --force
+          find Shared/ iOS/ -name "*.cpp" -o -name "*.cxx" -o -name "*.cc" | xargs cppcheck --enable=all --inconclusive --quiet --std=c++11 --language=c++ --force > cppcheck_errors.txt
 
   analyze_swift:
     runs-on: macos-latest
@@ -24,7 +25,7 @@ jobs:
       - name: Install SwiftLint
         run: brew install swiftlint
       - name: Run SwiftLint
-        run: swiftlint lint shared/ IOS/
+        run: swiftlint lint Shared/ iOS/ > swiftlint_errors.txt
 
   analyze_infer:
     runs-on: ubuntu-22.04
@@ -36,4 +37,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y infer
       - name: Run Infer
-        run: infer run -- make
+        run: infer run -- make > infer_errors.txt
+
+  combine_errors:
+    runs-on: ubuntu-22.04
+    needs: [analyze_cpp, analyze_swift, analyze_infer]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - name: Combine Errors
+        run: |
+          cat cppcheck_errors.txt swiftlint_errors.txt infer_errors.txt > all_errors.txt
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          commit-message: "Combined errors from analysis tools"
+          branch: "error-reports"
+          title: "Combined Error Report"
+          body: "This PR contains a combined error report from Cppcheck, SwiftLint, and Infer."
+          path: "all_errors.txt"
