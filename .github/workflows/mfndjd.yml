@@ -59,7 +59,7 @@ jobs:
           # Run SwiftLint on the entire codebase
           swiftlint lint \
             --strict \
-            --reporter detailed \
+            --reporter xcode \
             > swiftlint_errors.txt 2>&1 || true
           cat swiftlint_errors.txt || true
 
